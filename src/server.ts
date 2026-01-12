@@ -10,9 +10,9 @@ const startServer = async () => {
 
     // Iniciar servidor
     const server = app.listen(env.PORT, () => {
-      logger.info(`🚀 Server running on port ${env.PORT}`);
-      logger.info(`📝 Environment: ${env.NODE_ENV}`);
-      logger.info(`🔗 http://localhost:${env.PORT}/api/v1/health`);
+      logger.info(` Server running on port ${env.PORT}`);
+      logger.info(` Environment: ${env.NODE_ENV}`);
+      logger.info(` http://localhost:${env.PORT}/api/v1/health`);
     });
 
     // Graceful shutdown

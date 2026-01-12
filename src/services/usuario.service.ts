@@ -86,15 +86,15 @@ export class UsuarioService {
     }
 
 
-    async loginUsuario(data: ILoginUsuario): Promise<IUsuario> {
+    async loginUsuario(email:string , password:string): Promise<IUsuario> {
         try {
-            const usuario = await usuarioRepository.findByEmail(data.email);
+            const usuario = await usuarioRepository.findByEmail(email);
             if (!usuario) {
                 throw new Error('Email o contraseña incorrectos');
             }
 
             // Comparar contraseña
-            const passwordValida = await bcrypt.compare(data.password, usuario.password);
+            const passwordValida = await bcrypt.compare(password, usuario.password);
             if (!passwordValida) {
                 throw new Error('Email o contraseña incorrectos');
             }

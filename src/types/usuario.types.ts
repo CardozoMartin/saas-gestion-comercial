@@ -32,3 +32,15 @@ export interface ILoginUsuario {
   email: string;
   password: string;
 }
+
+// Interfaz interna para usuario con contraseña
+export interface DtoUsuarioInterno extends IUsuario {
+  password: string;
+}
+
+// Interfaz para respuesta de login
+export interface ILoginResponse {
+  message: string;
+  token: string;
+  usuario: IUsuario;
+}

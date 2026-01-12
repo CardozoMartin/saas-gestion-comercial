@@ -133,7 +133,7 @@ CREATE TABLE ventas (
     numero_venta VARCHAR(20) UNIQUE NOT NULL,
     cliente_id INT,
     usuario_id INT NOT NULL,
-    tipo_venta ENUM('contado', 'cuenta_corriente') NOT NULL,
+    tipo_venta ENUM('contado', 'cuenta_corriente', 'transferencia') NOT NULL,
     subtotal DECIMAL(10,2) NOT NULL,
     descuento DECIMAL(10,2) DEFAULT 0,
     total DECIMAL(10,2) NOT NULL,
@@ -141,7 +141,7 @@ CREATE TABLE ventas (
     observaciones TEXT,
     fecha_venta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (cliente_id) REFERENCES clientes(id),
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    FOREIGN KEY (usuario_id) REFERENCIAS usuarios(id)
 );
 
 CREATE TABLE ventas_detalle (

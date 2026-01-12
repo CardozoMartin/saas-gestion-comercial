@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { usuarioController } from '@controllers/usuario.controller';
+import { authController } from '@controllers/auth.controller';
 
 const router = Router();
 
@@ -17,6 +18,6 @@ router.put('/:id', usuarioController.update.bind(usuarioController));
 router.delete('/:id', usuarioController.delete.bind(usuarioController));
 
 // Ruta especial para login
-router.post('/auth/login', usuarioController.login.bind(usuarioController));
+router.post('/auth/login', authController.loginUsuario.bind(authController));
 
 export default router;

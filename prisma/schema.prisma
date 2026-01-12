@@ -83,8 +83,8 @@ model Producto {
   categoriaId       Int?     @map("categoria_id")
   precioCosto       Decimal  @map("precio_costo") @db.Decimal(10, 2)
   precioVenta       Decimal  @map("precio_venta") @db.Decimal(10, 2)
-  unidadMedidaId    Int      @map("unidad_medida_id") // Unidad BASE del producto
-  fraccionable      Boolean  @default(false) // ← NUEVO: ¿Se puede vender fraccionado?
+  unidadMedidaId    Int      @map("unidad_medida_id")
+  fraccionable      Boolean  @default(false)
   stockMinimo       Decimal  @default(0) @map("stock_minimo") @db.Decimal(10, 3)
   activo            Boolean  @default(true)
   fechaCreacion     DateTime @default(now()) @map("fecha_creacion") @db.Timestamp(0)
@@ -93,12 +93,12 @@ model Producto {
   categoria         Categoria?    @relation(fields: [categoriaId], references: [id])
   unidadMedida      UnidadMedida  @relation(fields: [unidadMedidaId], references: [id])
   
-  // Relaciones
   unidadesVenta     ProductoUnidadVenta[]
   stockActual       StockActual?
   movimientosStock  MovimientoStock[]
   ventasDetalle     VentaDetalle[]
 
+  @@index([activo])
   @@map("productos")
 }
 
@@ -128,20 +128,28 @@ model StockActual {
 }
 
 model MovimientoStock {
-  id               Int      @id @default(autoincrement())
-  productoId       Int      @map("producto_id")
-  tipoMovimiento   String   @map("tipo_movimiento") @db.VarChar(20)
-  cantidad         Decimal  @db.Decimal(10, 3)
-  motivo           String?  @db.VarChar(200)
-  usuarioId        Int      @map("usuario_id")
-  referenciaId     Int?     @map("referencia_id")
-  referenciaTipo   String?  @map("referencia_tipo") @db.VarChar(50)
-  fechaMovimiento  DateTime @default(now()) @map("fecha_movimiento")
+  id               Int                 @id @default(autoincrement())
+  productoId       Int                 @map("producto_id")
+  tipoMovimiento   TipoMovimientoStock @map("tipo_movimiento")
+  cantidad         Decimal             @db.Decimal(10, 3)
+  motivo           String?             @db.VarChar(200)
+  usuarioId        Int                 @map("usuario_id")
+  referenciaId     Int?                @map("referencia_id")
+  referenciaTipo   String?             @map("referencia_tipo") @db.VarChar(50)
+  fechaMovimiento  DateTime            @default(now()) @map("fecha_movimiento")
 
   producto         Producto @relation(fields: [productoId], references: [id])
   usuario          Usuario  @relation(fields: [usuarioId], references: [id])
 
+  @@index([productoId])
+  @@index([fechaMovimiento])
   @@map("movimientos_stock")
+}
+
+enum TipoMovimientoStock {
+  entrada
+  salida
+  ajuste
 }
 
 model Cliente {
@@ -163,6 +171,7 @@ model Cliente {
   cuentaCorriente    CuentaCorriente?
   pagos              Pago[]
 
+  @@index([activo])
   @@map("clientes")
 }
 
@@ -193,17 +202,17 @@ model CuentaCorriente {
 }
 
 model Venta {
-  id            Int      @id @default(autoincrement())
-  numeroVenta   String   @unique @map("numero_venta") @db.VarChar(20)
-  clienteId     Int?     @map("cliente_id")
-  usuarioId     Int      @map("usuario_id")
-  tipoVenta     String   @map("tipo_venta") @db.VarChar(20)
-  subtotal      Decimal  @db.Decimal(10, 2)
-  descuento     Decimal  @default(0) @db.Decimal(10, 2)
-  total         Decimal  @db.Decimal(10, 2)
-  estado        String   @default("pendiente") @db.VarChar(20)
-  observaciones String?  @db.Text
-  fechaVenta    DateTime @default(now()) @map("fecha_venta")
+  id            Int        @id @default(autoincrement())
+  numeroVenta   String     @unique @map("numero_venta") @db.VarChar(20)
+  clienteId     Int?       @map("cliente_id")
+  usuarioId     Int        @map("usuario_id")
+  tipoVenta     TipoVenta  @map("tipo_venta")
+  subtotal      Decimal    @db.Decimal(10, 2)
+  descuento     Decimal    @default(0) @db.Decimal(10, 2)
+  total         Decimal    @db.Decimal(10, 2)
+  estado        EstadoVenta @default(pendiente)
+  observaciones String?    @db.Text
+  fechaVenta    DateTime   @default(now()) @map("fecha_venta")
 
   cliente       Cliente? @relation(fields: [clienteId], references: [id])
   usuario       Usuario  @relation(fields: [usuarioId], references: [id])
@@ -212,7 +221,21 @@ model Venta {
   pagos         Pago[]
   movimientosCuentaCorriente MovimientoCuentaCorriente[]
 
+  @@index([fechaVenta])
+  @@index([usuarioId])
   @@map("ventas")
+}
+
+enum TipoVenta {
+  contado
+  cuenta_corriente
+  transferencia
+}
+
+enum EstadoVenta {
+  pendiente
+  pagada
+  cancelada
 }
 
 model VentaDetalle {
@@ -261,20 +284,21 @@ model Pago {
   movimientosCuentaCorriente MovimientoCuentaCorriente[]
   cajasMovimientos CajaMovimiento[]
 
+  @@index([fechaPago])
   @@map("pagos")
 }
 
 model MovimientoCuentaCorriente {
-  id                  Int      @id @default(autoincrement())
-  cuentaCorrienteId   Int      @map("cuenta_corriente_id")
-  tipoMovimiento      String   @map("tipo_movimiento") @db.VarChar(20)
-  monto               Decimal  @db.Decimal(10, 2)
-  saldoAnterior       Decimal  @map("saldo_anterior") @db.Decimal(10, 2)
-  saldoNuevo          Decimal  @map("saldo_nuevo") @db.Decimal(10, 2)
-  ventaId             Int?     @map("venta_id")
-  pagoId              Int?     @map("pago_id")
-  descripcion         String?  @db.Text
-  fechaMovimiento     DateTime @default(now()) @map("fecha_movimiento")
+  id                  Int                    @id @default(autoincrement())
+  cuentaCorrienteId   Int                    @map("cuenta_corriente_id")
+  tipoMovimiento      TipoMovimientoCuenta   @map("tipo_movimiento")
+  monto               Decimal                @db.Decimal(10, 2)
+  saldoAnterior       Decimal                @map("saldo_anterior") @db.Decimal(10, 2)
+  saldoNuevo          Decimal                @map("saldo_nuevo") @db.Decimal(10, 2)
+  ventaId             Int?                   @map("venta_id")
+  pagoId              Int?                   @map("pago_id")
+  descripcion         String?                @db.Text
+  fechaMovimiento     DateTime               @default(now()) @map("fecha_movimiento")
 
   cuentaCorriente     CuentaCorriente @relation(fields: [cuentaCorrienteId], references: [id])
   venta               Venta?   @relation(fields: [ventaId], references: [id])
@@ -283,42 +307,59 @@ model MovimientoCuentaCorriente {
   @@map("movimientos_cuenta_corriente")
 }
 
+enum TipoMovimientoCuenta {
+  cargo
+  pago
+}
+
 model Caja {
-  id                 Int       @id @default(autoincrement())
-  usuarioId          Int       @map("usuario_id")
-  montoInicial       Decimal   @map("monto_inicial") @db.Decimal(10, 2)
-  montoFinal         Decimal?  @map("monto_final") @db.Decimal(10, 2)
-  totalEfectivo      Decimal?  @map("total_efectivo") @db.Decimal(10, 2)
-  totalTransferencias Decimal? @map("total_transferencias") @db.Decimal(10, 2)
-  totalVentas        Decimal?  @map("total_ventas") @db.Decimal(10, 2)
-  diferencia         Decimal?  @db.Decimal(10, 2)
-  estado             String    @default("abierta") @db.VarChar(20)
-  observaciones      String?   @db.Text
-  fechaApertura      DateTime  @default(now()) @map("fecha_apertura")
-  fechaCierre        DateTime? @map("fecha_cierre")
+  id                 Int        @id @default(autoincrement())
+  usuarioId          Int        @map("usuario_id")
+  montoInicial       Decimal    @map("monto_inicial") @db.Decimal(10, 2)
+  montoFinal         Decimal?   @map("monto_final") @db.Decimal(10, 2)
+  totalEfectivo      Decimal?   @map("total_efectivo") @db.Decimal(10, 2)
+  totalTransferencias Decimal?  @map("total_transferencias") @db.Decimal(10, 2)
+  totalVentas        Decimal?   @map("total_ventas") @db.Decimal(10, 2)
+  diferencia         Decimal?   @db.Decimal(10, 2)
+  estado             EstadoCaja @default(abierta)
+  observaciones      String?    @db.Text
+  fechaApertura      DateTime   @default(now()) @map("fecha_apertura")
+  fechaCierre        DateTime?  @map("fecha_cierre")
 
   usuario            Usuario   @relation(fields: [usuarioId], references: [id])
   
   movimientos        CajaMovimiento[]
 
+  @@index([usuarioId, estado])
   @@map("cajas")
 }
 
+enum EstadoCaja {
+  abierta
+  cerrada
+}
+
 model CajaMovimiento {
-  id               Int      @id @default(autoincrement())
-  cajaId           Int      @map("caja_id")
-  pagoId           Int?     @map("pago_id")
-  tipoMovimiento   String   @map("tipo_movimiento") @db.VarChar(20)
-  medioPagoId      Int      @map("medio_pago_id")
-  monto            Decimal  @db.Decimal(10, 2)
-  descripcion      String?  @db.Text
-  fechaMovimiento  DateTime @default(now()) @map("fecha_movimiento")
+  id               Int                   @id @default(autoincrement())
+  cajaId           Int                   @map("caja_id")
+  pagoId           Int?                  @map("pago_id")
+  tipoMovimiento   TipoMovimientoCaja    @map("tipo_movimiento")
+  medioPagoId      Int                   @map("medio_pago_id")
+  monto            Decimal               @db.Decimal(10, 2)
+  descripcion      String?               @db.Text
+  fechaMovimiento  DateTime              @default(now()) @map("fecha_movimiento")
 
   caja             Caja     @relation(fields: [cajaId], references: [id])
   pago             Pago?    @relation(fields: [pagoId], references: [id])
   medioPago        MedioPago @relation(fields: [medioPagoId], references: [id])
 
   @@map("cajas_movimientos")
+}
+
+enum TipoMovimientoCaja {
+  venta
+  retiro
+  ingreso
 }
 
 model Auditoria {

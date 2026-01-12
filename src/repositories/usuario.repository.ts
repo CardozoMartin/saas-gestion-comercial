@@ -2,6 +2,7 @@ import { prisma } from '@config/database';
 import { ICreateUsuario, IUpdateUsuario, IUsuario } from '@types/usuario.types';
 import { Usuario } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { DtoUsuarioInterno } from '@/types/usuario.types';
 
 
 export class UsuarioRepository {
@@ -109,6 +110,24 @@ export class UsuarioRepository {
       where: { email },
     });
     return !!usuario;
+  }
+  //vamos a crear un metodo para buscar por email y traer la contraseña hasheada
+  async findByEmailWithPassword(email: string): Promise<DtoUsuarioInterno | null> {
+    const usuario = await prisma.usuario.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        nombre: true,
+        apellido: true,
+        email: true,
+        telefono: true,
+        password: true,
+        activo: true,
+        fechaCreacion: true,
+        fechaActualizacion: true,
+      },
+    });
+    return usuario;
   }
 }
 
