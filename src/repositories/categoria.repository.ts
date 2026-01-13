@@ -62,3 +62,5 @@ export class CategoriaRepository {
         });
     }
 }
+
+export const categoriaRepository = new CategoriaRepository();
