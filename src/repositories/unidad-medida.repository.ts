@@ -62,3 +62,5 @@ export class UnidadMedidaRepository {
         });
     }
 }
+
+export const unidadMedidaRepository = new UnidadMedidaRepository();

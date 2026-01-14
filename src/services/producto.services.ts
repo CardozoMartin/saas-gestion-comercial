@@ -2,7 +2,7 @@ import { productoRepository } from "@/repositories/producto.repository";
 import { stockRepository } from "@/repositories/stock.repository";
 import { auditoriaRepository } from "@/repositories/auditoria.repository";
 import { prisma } from '@config/database';
-import { IProducto, ICreateProducto, IUpdateProducto } from '@/types/producto.types';
+import { IProducto, ICreateProducto, IUpdateProducto,IProductoPaginatedResult } from '@/types/producto.types';
 
 export class ProductoService {
 
@@ -12,7 +12,7 @@ export class ProductoService {
         return await productoRepository.findAll();
     }
 
-    async getProductoById(id: string): Promise<IProducto> {
+    async getProductoById(id: string): Promise<IProductoPaginatedResult> {
         const idNumber = this.parseId(id);
         const producto = await productoRepository.findById(idNumber);
         
