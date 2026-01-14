@@ -8,6 +8,7 @@ export class ProductoService {
 
     
     async getAllProductos(): Promise<IProducto[]> {
+        
         return await productoRepository.findAll();
     }
 

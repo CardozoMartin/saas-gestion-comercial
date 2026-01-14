@@ -4,24 +4,44 @@ import { IProducto, ICreateProducto, IUpdateProducto } from '@/types/producto.ty
 export class ProductoRepository {
 
     async findAll(): Promise<IProducto[]> {
-        return await prisma.producto.findMany({
-            select: {
-                id: true,
-                codigo: true,
-                nombre: true,
-                descripcion: true,
-                categoriaId: true,
-                precioCosto: true,
-                precioVenta: true,
-                unidadMedidaId: true,
-                fraccionable: true,
-                stockMinimo: true,
-                activo: true,
-                fechaCreacion: true,
-                fechaActualizacion: true
+    return await prisma.producto.findMany({
+        select: {
+            id: true,
+            codigo: true,
+            nombre: true,
+            descripcion: true,
+            categoriaId: true,
+            precioCosto: true,
+            precioVenta: true,
+            unidadMedidaId: true,
+            fraccionable: true,
+            stockMinimo: true,
+            activo: true,
+            fechaCreacion: true,
+            fechaActualizacion: true,
+            // Relaciones
+            categoria: {
+                select: {
+                    id: true,
+                    nombre: true
+                }
+            },
+            unidadMedida: {
+                select: {
+                    id: true,
+                    nombre: true
+                }
+            },
+            stockActual: {
+                select: {
+                    id: true,
+                    cantidad: true,
+                    fechaActualizacion: true
+                }
             }
-        });
-    }
+        }
+    });
+}
 
     async findById(id: number): Promise<IProducto | null> {
         return await prisma.producto.findUnique({
