@@ -6,10 +6,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 
 export class CajaService {
 
-    /**
-     * Abre una nueva caja para el usuario
-     * Valida que no tenga otra caja abierta
-     */
+  
     async abrirCaja(data: ICreateCaja, user: any): Promise<ICaja> {
         // Validar que el usuario no tenga una caja abierta
         const cajaAbierta = await cajaRepository.findByUsuarioIdAndEstado(data.usuarioId, 'abierta');
@@ -34,16 +31,12 @@ export class CajaService {
         return caja;
     }
 
-    /**
-     * Obtiene la caja abierta del usuario
-     */
+
     async obtenerCajaAbierta(usuarioId: number): Promise<ICaja | null> {
         return await cajaRepository.findByUsuarioIdAndEstado(usuarioId, 'abierta');
     }
 
-    /**
-     * Registra un movimiento de caja (venta, ingreso, retiro)
-     */
+
     async registrarMovimiento(
         cajaId: number,
         tipoMovimiento: 'venta' | 'ingreso' | 'retiro',
@@ -74,9 +67,7 @@ export class CajaService {
         });
     }
 
-    /**
-     * Cierra la caja calculando totales
-     */
+
     async cerrarCaja(cajaId: number, montoFinalContado: number, observaciones?: string): Promise<ICaja> {
         // Validar que la caja exista
         const caja = await cajaRepository.findById(cajaId);
@@ -138,9 +129,7 @@ export class CajaService {
         return cajaActualizada;
     }
 
-    /**
-     * Obtiene el resumen de una caja con sus movimientos
-     */
+
     async obtenerResumenCaja(cajaId: number) {
         const caja = await cajaRepository.findById(cajaId);
         
@@ -164,9 +153,7 @@ export class CajaService {
         };
     }
 
-    /**
-     * Lista todas las cajas de un usuario
-     */
+
     async listarCajasPorUsuario(usuarioId: number): Promise<ICaja[]> {
         return await prisma.caja.findMany({
             where: { usuarioId },

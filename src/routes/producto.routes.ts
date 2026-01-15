@@ -5,6 +5,7 @@ const router = Router();
 
 
 router.get('/', productoController.getAll.bind(productoController));
+router.get('/allproducts', productoController.getProductosSinPaginacion.bind(productoController));
 
 router.get('/:id', productoController.getById.bind(productoController));
 router.post('/', loginDataHandler, productoController.create.bind(productoController));

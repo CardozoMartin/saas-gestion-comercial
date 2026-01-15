@@ -4,11 +4,38 @@ import { auditoriaRepository } from "@/repositories/auditoria.repository";
 import { prisma } from '@config/database';
 import { IProducto, ICreateProducto, IUpdateProducto,IProductoPaginatedResult, IProductoPagination } from '@/types/producto.types';
 
+interface ProductoDTO{
+    id: number;
+    codigo: string;
+    nombre: string;
+    precioVenta: number;
+    stockActual: number;
+    categoriaNombre?: string;
+    unidadMedidaNombre?: string;
+}
 export class ProductoService {
 
     
     async getAllProductos(params?: IProductoPagination): Promise<IProductoPaginatedResult> {
     return await productoRepository.findAll(params);
+
+}
+
+async getProductosSinPaginacion(): Promise<IProducto[]> {
+  const productos = await productoRepository.findAllWithoutPagination();
+  console.log(productos);
+  //producto DTO
+  const productoDTOs: ProductoDTO[] = productos.map((producto) => ({
+    id: producto.id,
+    codigo: producto.codigo,
+    nombre: producto.nombre,
+    precioVenta: producto.precioVenta,
+    stockActual: producto.stockActual ? producto.stockActual.cantidad : 0,
+    categoriaNombre: producto.categoria ? producto.categoria.nombre : undefined,
+    unidadMedidaNombre: producto.unidadMedida ? producto.unidadMedida.nombre : undefined,
+  }));
+
+  return productoDTOs;
 }
 
     async getProductoById(id: string): Promise<IProductoPaginatedResult> {
