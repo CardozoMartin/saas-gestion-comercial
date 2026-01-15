@@ -121,6 +121,17 @@ export class UsuarioRepository {
         apellido: true,
         email: true,
         telefono: true,
+        roles: {
+          select: {
+            rol: {
+              select: {
+                id: true,
+                nombre: true,
+                descripcion: true,
+              },
+            },
+          },
+        },
         password: true,
         activo: true,
         fechaCreacion: true,

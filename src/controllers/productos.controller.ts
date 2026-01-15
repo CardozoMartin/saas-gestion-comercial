@@ -1,18 +1,30 @@
 import { Producto } from '@prisma/client';
 import { Request , Response } from 'express';
 import { productoService } from '../services/producto.services';
+import { IProductoPagination } from '@/types/producto.types';
 
 
 export class ProductoController {
 
     async getAll(req: Request, res: Response): Promise<Response> {
-        try {
-            const productos = await productoService.getAllProductos();
-            return res.status(200).json(productos);
-        } catch (error) {
-            return res.status(500).json({ message: 'Error al obtener productos', error });
-        }
+    try {
+        // Extraer parámetros de query
+        const params: IProductoPagination = {
+            page: req.query.page ? parseInt(req.query.page as string) : undefined,
+            limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+            search: req.query.search as string,
+            categoriaId: req.query.categoriaId ? parseInt(req.query.categoriaId as string) : undefined,
+            activo: req.query.activo ? req.query.activo === 'true' : undefined,
+            sortBy: req.query.sortBy as "nombre" | "codigo" | "precioVenta" | "fechaCreacion",
+            sortOrder: req.query.sortOrder as "asc" | "desc"
+        };
+
+        const result = await productoService.getAllProductos(params);
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(500).json({ message: 'Error al obtener productos', error });
     }
+}
     async getById(req: Request, res: Response): Promise<Response> {
         try {
             const { id } = req.params;

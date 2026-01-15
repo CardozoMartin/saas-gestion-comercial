@@ -2,18 +2,20 @@ import { productoRepository } from "@/repositories/producto.repository";
 import { stockRepository } from "@/repositories/stock.repository";
 import { auditoriaRepository } from "@/repositories/auditoria.repository";
 import { prisma } from '@config/database';
-import { IProducto, ICreateProducto, IUpdateProducto,IProductoPaginatedResult } from '@/types/producto.types';
+import { IProducto, ICreateProducto, IUpdateProducto,IProductoPaginatedResult, IProductoPagination } from '@/types/producto.types';
 
 export class ProductoService {
 
     
-    async getAllProductos(): Promise<IProducto[]> {
-        
-        return await productoRepository.findAll();
-    }
+    async getAllProductos(params?: IProductoPagination): Promise<IProductoPaginatedResult> {
+    return await productoRepository.findAll(params);
+}
 
     async getProductoById(id: string): Promise<IProductoPaginatedResult> {
         const idNumber = this.parseId(id);
+
+        //vamos agregar paginacion
+
         const producto = await productoRepository.findById(idNumber);
         
         if (!producto) {

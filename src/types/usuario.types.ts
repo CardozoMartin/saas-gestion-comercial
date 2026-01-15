@@ -5,6 +5,7 @@ export interface IUsuario {
   apellido: string;
   email: string;
   telefono?: string | null;
+  rol: string;
   activo: boolean;
   fechaCreacion: Date;
   fechaActualizacion: Date;

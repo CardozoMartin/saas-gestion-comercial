@@ -35,7 +35,7 @@ export class AuthService {
             }
 
             // 5. Generar token
-            const token = this.generarToken(usuarioConPassword.id, usuarioConPassword.email);
+            const token = this.generarToken(usuarioConPassword.id, usuarioConPassword.email, usuarioConPassword.nombre, usuarioConPassword.rol);
 
             // 6. Retornar respuesta sin la contraseña
             const { password: _, ...usuarioSinPassword } = usuarioConPassword;
@@ -51,10 +51,12 @@ export class AuthService {
     }
 
     // Método privado para generar token JWT
-    private generarToken(usuarioId: number, email: string): string {
+    private generarToken(usuarioId: number, email: string, nombre: string, rol: string): string {
         const payload = {
             id: usuarioId,
             email: email,
+            nombre: nombre,
+            rol: rol,
             iat: Math.floor(Date.now() / 1000), // timestamp
         };
 
