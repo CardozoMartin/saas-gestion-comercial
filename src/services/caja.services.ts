@@ -160,6 +160,16 @@ export class CajaService {
             orderBy: { fechaApertura: 'desc' }
         });
     }
+
+    //obtener todos los detalles de ventas de cajas abiertas de un usuario
+    async findDetallesVentasCajaAbierta(usuarioId: number): Promise<any[]> {
+        const boxOpenByUser = await cajaRepository.findResumenCajaAbierta(usuarioId);
+        if (!boxOpenByUser) {
+            throw new Error('No hay caja abierta para este usuario');
+        }
+        return boxOpenByUser
+    }
+    
 }
 
 export const cajaService = new CajaService();

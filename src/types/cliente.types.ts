@@ -12,6 +12,8 @@ export interface ICliente {
     activo: boolean;
     fechaCreacion: Date;
     fechaActualizacion: Date;
+    condicionPagoId: number | null;
+    fechaProximoVencimiento: Date | null;
 }
 
 export interface ICreateCliente {
@@ -24,6 +26,8 @@ export interface ICreateCliente {
     telefono?: string | null;
     direccion?: string | null;
     limiteCredito?: number;
+    condicionPagoId?: number | null;
+    fechaProximoVencimiento?: Date | null;
 }
 
 export interface IUpdateCliente {
@@ -37,4 +41,6 @@ export interface IUpdateCliente {
     direccion?: string | null;
     limiteCredito?: number;
     activo?: boolean;
+    condicionPagoId?: number | null;
+    fechaProximoVencimiento?: Date | null;
 }

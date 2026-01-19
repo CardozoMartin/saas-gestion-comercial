@@ -3,11 +3,7 @@ import { cajaService } from "../services/caja.services";
 
 class CajaController {
 
-    /**
-     * Abre una nueva caja
-     * POST /api/cajas/abrir
-     * Body: { usuarioId, montoInicial, observaciones? }
-     */
+ 
     async abrirCaja(req: Request, res: Response): Promise<Response> {
         try {
             const { usuarioId, montoInicial, observaciones } = req.body;
@@ -38,11 +34,6 @@ class CajaController {
             });
         }
     }
-
-    /**
-     * Obtiene la caja abierta del usuario
-     * GET /api/cajas/abierta/:usuarioId
-     */
     async obtenerCajaAbierta(req: Request, res: Response): Promise<Response> {
         try {
             const usuarioId = parseInt(req.params.usuarioId);
@@ -74,13 +65,8 @@ class CajaController {
             });
         }
     }
-
-    /**
-     * Cierra la caja actual
-     * POST /api/cajas/:id/cerrar
-     * Body: { montoFinalContado, observaciones? }
-     */
     async cerrarCaja(req: Request, res: Response): Promise<Response> {
+        console.log(req.body);
         try {
             const cajaId = parseInt(req.params.id);
             const { montoFinalContado, observaciones } = req.body;
@@ -110,11 +96,6 @@ class CajaController {
             });
         }
     }
-
-    /**
-     * Obtiene el resumen completo de una caja
-     * GET /api/cajas/:id/resumen
-     */
     async obtenerResumenCaja(req: Request, res: Response): Promise<Response> {
         try {
             const cajaId = parseInt(req.params.id);
@@ -139,11 +120,6 @@ class CajaController {
             });
         }
     }
-
-    /**
-     * Lista todas las cajas de un usuario
-     * GET /api/cajas/usuario/:usuarioId
-     */
     async listarCajasPorUsuario(req: Request, res: Response): Promise<Response> {
         try {
             const usuarioId = parseInt(req.params.usuarioId);
@@ -168,12 +144,6 @@ class CajaController {
             });
         }
     }
-
-    /**
-     * Registra un ingreso o retiro manual de dinero
-     * POST /api/cajas/:id/movimiento
-     * Body: { tipoMovimiento: 'ingreso' | 'retiro', medioPagoId, monto, descripcion }
-     */
     async registrarMovimiento(req: Request, res: Response): Promise<Response> {
         try {
             const cajaId = parseInt(req.params.id);
@@ -205,6 +175,27 @@ class CajaController {
                 success: true,
                 message: 'Movimiento registrado exitosamente',
                 data: movimiento
+            });
+        } catch (error: any) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+    async obtenerDetallesVentasCajaAbierta(req: Request, res: Response): Promise<Response> {
+        try {
+            const usuarioId = parseInt(req.params.usuarioId);
+            if (isNaN(usuarioId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'usuarioId inválido'
+                });
+            }
+            const detallesVentas = await cajaService.findDetallesVentasCajaAbierta(usuarioId);
+            return res.status(200).json({
+                success: true,
+                data: detallesVentas
             });
         } catch (error: any) {
             return res.status(400).json({

@@ -21,6 +21,9 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { auditoriaRepository } from "@/repositories/auditoria.repository";
 import { pagoRepository } from "@/repositories/medio-pago.repository";
 import { cajaService } from "./caja.services";
+import { unitConversionService } from "./UnitConversionService";
+import { unidadMedidaRepository } from "@/repositories/unidad-medida.repository";
+import {accountTransactionRepository} from "@/repositories/AccountTransaction";
 
 export class VentaService {
   // Generar número de venta único
@@ -75,17 +78,68 @@ export class VentaService {
       }
     }
   }
-  private async validarCreacionProducto(producto, detalle): Promise<void> {
+  private async validarCreacionProducto(producto, detalle): Promise<any> {
     if (!producto) {
       throw new Error(`Producto con ID ${detalle.productoId} no encontrado`);
     }
 
-    // Validar que esté activo
     if (!producto.activo) {
       throw new Error(`Producto ${producto.nombre} no está activo`);
     }
 
-    // Validar stock disponible
+    // Obtener la unidad de medida del stock (unidad base del producto)
+    const unidadBase = await unidadMedidaRepository.findById(
+      producto.unidadMedidaId
+    );
+
+    if (!unidadBase) {
+      throw new Error(
+        `Unidad base del producto ${producto.nombre} no encontrada`
+      );
+    }
+
+    // Obtener la unidad de medida de la venta
+    const unidadVenta = await unidadMedidaRepository.findById(
+      detalle.unidadMedidaId
+    );
+
+    if (!unidadVenta) {
+      throw new Error(`Unidad de venta no encontrada`);
+    }
+
+    // Validar que las unidades sean compatibles
+
+    const sonCompatibles = unitConversionService.sonUnidadesCompatibles(
+      unidadBase.abreviatura,
+      unidadVenta.abreviatura
+    );
+
+    if (!sonCompatibles) {
+      throw new Error(
+        `Las unidades no son compatibles: ${unidadBase.abreviatura} (stock) vs ${unidadVenta.abreviatura} (venta)`
+      );
+    }
+
+    let cantidadParaStock: number;
+
+    if (
+      unidadBase.abreviatura.toLowerCase() ===
+      unidadVenta.abreviatura.toLowerCase()
+    ) {
+      // Misma unidad, no hay conversión necesaria
+      cantidadParaStock = detalle.cantidad;
+    } else {
+      // Diferentes unidades, convertir
+
+      const cantidadConvertida = unitConversionService.convertir(
+        detalle.cantidad,
+        unidadVenta.abreviatura,
+        unidadBase.abreviatura
+      );
+      cantidadParaStock = cantidadConvertida.toNumber();
+    }
+
+    // Validar stock
     const stock = await stockRepository.findByProductoId(detalle.productoId);
 
     if (!stock) {
@@ -95,39 +149,49 @@ export class VentaService {
     }
 
     const cantidadStock = new Decimal(stock.cantidad.toString());
-    const cantidadVenta = new Decimal(detalle.cantidad.toString());
+    const cantidadSolicitada = new Decimal(cantidadParaStock);
 
-    if (cantidadStock.lessThan(cantidadVenta)) {
+    if (cantidadStock.lessThan(cantidadSolicitada)) {
       throw new Error(
-        `Stock insuficiente para el producto ${
-          producto.nombre
-        }. Disponible: ${cantidadStock.toString()}, Solicitado: ${cantidadVenta.toString()}`
+        `Stock insuficiente para ${producto.nombre}. ` +
+          `Disponible: ${cantidadStock.toNumber()} ${
+            unidadBase.abreviatura
+          }, ` +
+          `Solicitado: ${cantidadSolicitada.toNumber()} ${
+            unidadBase.abreviatura
+          } ` +
+          `(${detalle.cantidad} ${unidadVenta.abreviatura})`
       );
     }
+
+    // Retornar la cantidad a descontar del stock
+    return {
+      producto,
+      cantidadEnUnidadBase: cantidadParaStock,
+    };
   }
   // Servicio para crear una venta
   async createVenta(data: ICreateVentaInput, user: any): Promise<IVenta> {
-    // 1. Antes de iniciar toda la venta verificamos que exista una caja abierta
+    console.log("Creando venta con datos:", data);
     const verifyBoxOpen = await cajaService.obtenerCajaAbierta(data.usuarioId);
     if (!verifyBoxOpen) {
+      console.log("No hay caja abierta para el usuario");
       throw new Error(
         "No tienes una caja abierta. Abre una caja antes de registrar ventas."
       );
     }
 
-    // Validar que existan detalles
     await this.validarCreacionVenta(data);
 
-    // Validar productos y calcular totales
     let subtotal = new Decimal(0);
     const detallesValidados = [];
 
     for (const detalle of data.detalles) {
-      // Validar que el producto exista
       const producto = await productoRepository.findById(detalle.productoId);
-      await this.validarCreacionProducto(producto, detalle);
 
-      // Calcular subtotal del detalle
+      //  Obtener la validación completa
+      const validacion = await this.validarCreacionProducto(producto, detalle);
+
       const subtotalDetalle = new Decimal(detalle.cantidad).times(
         detalle.precioUnitario
       );
@@ -136,13 +200,13 @@ export class VentaService {
       detallesValidados.push({
         productoId: detalle.productoId,
         unidadMedidaId: detalle.unidadMedidaId,
-        cantidad: new Decimal(detalle.cantidad),
+        cantidad: new Decimal(detalle.cantidad), // Cantidad en unidad de venta
         precioUnitario: new Decimal(detalle.precioUnitario),
         subtotal: subtotalDetalle,
+        cantidadEnUnidadBase: validacion.cantidadEnUnidadBase,
       });
     }
 
-    // Calcular total con descuento
     const descuento = new Decimal(data.descuento || 0);
     const total = subtotal.minus(descuento);
 
@@ -150,12 +214,9 @@ export class VentaService {
       throw new Error("El total de la venta debe ser mayor a 0");
     }
 
-    // 2. Transacción compleja con lógica de negocio
     const venta = await prisma.$transaction(async (tx) => {
-      // Generar número de venta
       const numeroVenta = await this.generateNumeroVenta();
 
-      // Crear la venta
       const venta = await ventaRepository.create({
         numeroVenta,
         clienteId: data.clienteId || null,
@@ -171,8 +232,8 @@ export class VentaService {
         observaciones: data.observaciones || null,
       });
 
-      // Crear los detalles de la venta
       for (const detalle of detallesValidados) {
+        // Crear detalle de venta (con cantidad en unidad de venta)
         await ventaDetalleRepository.create({
           ventaId: venta.id,
           productoId: detalle.productoId,
@@ -182,55 +243,109 @@ export class VentaService {
           subtotal: detalle.subtotal.toNumber(),
         });
 
-        // Actualizar el stock
+        //  Actualizar stock (con cantidad en unidad base)
+
         const stockActual = await stockRepository.findByProductoId(
           detalle.productoId
         );
+
         if (stockActual) {
-          const nuevaCantidad = new Decimal(stockActual.cantidad).minus(
-            detalle.cantidad
-          );
+          const stockAnterior = new Decimal(stockActual.cantidad);
+          const cantidadADescontar = new Decimal(detalle.cantidadEnUnidadBase);
+          const nuevaCantidad = stockAnterior.minus(cantidadADescontar);
+
           await stockRepository.update(detalle.productoId, {
             cantidad: nuevaCantidad.toNumber(),
           });
         }
       }
 
-      // Registrar el pago si es contado o transferencia inmediata
+      // Registrar pago
       if (
-        data.tipoVenta === TipoVenta.contado ||
-        data.tipoVenta === TipoVenta.transferencia
-      ) {
-        const medioPagoId = data.tipoVenta === TipoVenta.contado ? 1 : 2;
-        const referencia =
-          data.tipoVenta === TipoVenta.contado
-            ? "Pago contado"
-            : "Pago por transferencia";
+    data.tipoVenta === TipoVenta.contado ||
+    data.tipoVenta === TipoVenta.transferencia
+  ) {
+    const medioPagoId = data.tipoVenta === TipoVenta.contado ? 1 : 2;
+    const referencia =
+      data.tipoVenta === TipoVenta.contado
+        ? "Pago contado"
+        : "Pago por transferencia";
 
-        await pagoRepository.create({
-          ventaId: venta.id,
-          clienteId: data.clienteId || null,
-          medioPagoId,
-          monto: total.toNumber(),
-          usuarioId: data.usuarioId,
-          referencia,
-          observaciones: null,
-        });
+    await pagoRepository.create({
+      ventaId: venta.id,
+      clienteId: data.clienteId || null,
+      medioPagoId,
+      monto: total.toNumber(),
+      usuarioId: data.usuarioId,
+      referencia,
+      observaciones: null,
+    });
+  }
+
+  // ✅ MOVER AQUÍ DENTRO DE LA TRANSACCIÓN
+  if (data.tipoVenta === TipoVenta.cuenta_corriente) {
+    // ✅ Usar tx en lugar de prisma directamente
+    const cliente = await tx.cliente.findUnique({
+      where: { id: data.clienteId! },
+      select: {
+        id: true,
+        cuentaCorriente: {
+          select: {
+            id: true,
+            saldoActual: true,
+          }
+        }
       }
-
-      //Auditoria para dejar registro de la venta creada
-      await auditoriaRepository.create({
-        usuarioId: user?.id || 1,
-        accion: "CREAR_VENTA",
-        tablaAfectada: "ventas",
-        registroId: venta.id,
-        datosNuevos: JSON.stringify(venta),
-      });
-
-      return venta;
     });
 
-    // 3. Registrar en caja DESPUÉS de la transacción (para evitar conflictos)
+    console.log("Cliente para cuenta corriente:", cliente);
+    
+    if (!cliente || !cliente.cuentaCorriente) {
+      throw new Error("Cliente no tiene cuenta corriente configurada");
+    }
+
+    const saldoAnterior = Number(cliente.cuentaCorriente.saldoActual);
+    console.log("🚀 saldoAnterior:", saldoAnterior);
+    
+    const saldoNuevo = saldoAnterior + total.toNumber();
+    console.log("🚀 saldoNuevo:", saldoNuevo);
+
+    // Crear el movimiento
+    await tx.movimientoCuentaCorriente.create({
+      data: {
+        cuentaCorrienteId: cliente.cuentaCorriente.id,
+        tipoMovimiento: "cargo",
+        monto: total.toNumber(),
+        saldoAnterior: saldoAnterior,
+        saldoNuevo: saldoNuevo,
+        ventaId: venta.id,
+        pagoId: null,
+        descripcion: `Venta ${venta.numeroVenta}`,
+        fechaMovimiento: new Date(),
+      }
+    });
+
+    // ✅ IMPORTANTE: Actualizar el saldo actual de la cuenta corriente
+    await tx.cuentaCorriente.update({
+      where: { id: cliente.cuentaCorriente.id },
+      data: {
+        saldoActual: saldoNuevo
+      }
+    });
+  }
+
+  await auditoriaRepository.create({
+    usuarioId: user?.id || 1,
+    accion: "CREAR_VENTA",
+    tablaAfectada: "ventas",
+    registroId: venta.id,
+    datosNuevos: JSON.stringify(venta),
+  });
+
+  return venta;
+    });
+
+    // Resto del código de caja...
     if (
       data.tipoVenta === TipoVenta.contado ||
       data.tipoVenta === TipoVenta.transferencia
@@ -243,8 +358,6 @@ export class VentaService {
 
         if (cajaAbierta) {
           const medioPagoId = data.tipoVenta === TipoVenta.contado ? 1 : 2;
-
-          // Obtener el pago recién creado para obtener su ID
           const pagos = await pagoRepository.findByVentaId(venta.id);
           const pagoId = pagos.length > 0 ? pagos[0].id : null;
 
@@ -256,14 +369,9 @@ export class VentaService {
             monto: total.toNumber(),
             descripcion: `Venta ${venta.numeroVenta}`,
           });
-        } else {
-          console.warn(
-            `⚠️ Usuario ${data.usuarioId} no tiene caja abierta. Venta ${venta.numeroVenta} no se registró en caja.`
-          );
         }
       } catch (error) {
         console.error(`❌ Error al registrar venta en caja:`, error);
-        // No lanzamos el error para no afectar la venta ya creada
       }
     }
 

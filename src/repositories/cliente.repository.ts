@@ -39,7 +39,14 @@ export class ClienteRepository {
                 limiteCredito: true,
                 activo: true,
                 fechaCreacion: true,
-                fechaActualizacion: true
+                fechaActualizacion: true,
+                cuentaCorriente:{
+                    select:{
+                        id:true,
+                        saldoActual:true,
+                        fechaProximoVencimiento:true
+                    }
+                }
             }
         });
     }
@@ -109,6 +116,128 @@ export class ClienteRepository {
             where: { id }
         });
     }
+    //obtendremos la cuenta corriente de un cliente por su id
+    //ahora vamos a traer todos los detalles de la cuenta corriente
+  async getCuentaCorrientePendienteByClienteId(clienteId: number): Promise<any> {
+    const cuentaCorriente = await prisma.cuentaCorriente.findFirst({
+        where: { clienteId },
+        select: {
+            id: true,
+            saldoActual: true,
+            condicionPagoId: true,
+            fechaProximoVencimiento: true,
+            cliente: {
+                select: {
+                    id: true,
+                    nombre: true,
+                    apellido: true,
+                    razonSocial: true,
+                    limiteCredito: true
+                }
+            },
+            condicionPago: {
+                select: {
+                    nombre: true,
+                    dias: true
+                }
+            },
+            movimientos: {
+                where: {
+                    tipoMovimiento: 'cargo' 
+                },
+                select: {
+                    id: true,
+                    monto: true,
+                    descripcion: true,
+                    fechaMovimiento: true,
+                    venta: {
+                        select: {
+                            id: true,
+                            numeroVenta: true,
+                            total: true,
+                            estado: true,
+                            fechaVenta: true,
+                            detalles:{
+                                select:{
+                                    id:true,
+                                    cantidad:true,
+                                    precioUnitario:true,
+                                    subtotal:true,
+                                    producto:{
+                                        select:{
+                                            id:true,
+                                            codigo:true,
+                                            nombre:true
+                                        }
+                                    },
+                                    unidadMedida:{
+                                        select:{
+                                            abreviatura:true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: {
+                    fechaMovimiento: 'desc'
+                }
+            }
+        }
+    });
+
+    return cuentaCorriente;
+}
+
+// Función separada para ver detalles puntuales de UNA venta específica
+async getDetalleVentaCuentaCorriente(ventaId: number): Promise<any> {
+    return await prisma.venta.findUnique({
+        where: { id: ventaId },
+        select: {
+            id: true,
+            numeroVenta: true,
+            subtotal: true,
+            descuento: true,
+            total: true,
+            estado: true,
+            fechaVenta: true,
+            observaciones: true,
+            cliente: {
+                select: {
+                    id: true,
+                    nombre: true,
+                    apellido: true,
+                    razonSocial: true
+                }
+            },
+            detalles: {
+                select: {
+                    id: true,
+                    cantidad: true,
+                    precioUnitario: true,
+                    subtotal: true,
+                    producto: {
+                        select: {
+                            id: true,
+                            codigo: true,
+                            nombre: true
+                        }
+                    },
+                    unidadMedida: {
+                        select: {
+                            abreviatura: true
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+    
+
+    
 }
 
 export const clienteRepository = new ClienteRepository();
