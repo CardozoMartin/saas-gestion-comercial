@@ -16,6 +16,7 @@ export interface ICreateUsuario {
   nombre: string;
   apellido: string;
   email: string;
+  rolId:number;
   password: string;
   telefono?: string;
 }

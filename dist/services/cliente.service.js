@@ -1,0 +1,363 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.clienteService = exports.ClienteService = void 0;
+const database_1 = require("@/config/database");
+const cliente_repository_1 = require("@/repositories/cliente.repository");
+const condicion_pago_repository_1 = require("@/repositories/condicion-pago.repository");
+const caja_repository_1 = require("@/repositories/caja.repository");
+const auditoria_repository_1 = require("@/repositories/auditoria.repository");
+class ClienteService {
+    constructor() { }
+    //funcion para obtener todos los clientes
+    async getAllClientes() {
+        try {
+            const clientes = await cliente_repository_1.clienteRepository.findAll();
+            return clientes;
+        }
+        catch (error) {
+            throw new Error(`Error al obtener clientes: ${error}`);
+        }
+    }
+    //funcion para obtener un cliente por id
+    async getClienteById(id) {
+        try {
+            const cliente = await cliente_repository_1.clienteRepository.findById(id);
+            if (!cliente) {
+                throw new Error("Cliente no encontrado");
+            }
+            return cliente;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    //funcion para crear un cliente
+    async createCliente(data) {
+        try {
+            const cliente = await cliente_repository_1.clienteRepository.create(data);
+            //ahora vamos a iniciar la cuenta corriente del cliente
+            await condicion_pago_repository_1.cuentaCorrienteRepository.create({
+                clienteId: cliente.id,
+                saldoActual: 0,
+                condicionPagoId: data.condicionPagoId,
+                fechaProximoVencimiento: data.fechaProximoVencimiento || null,
+            });
+            //ahora iniciamos la
+            return cliente;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    //funcion para actualizar un cliente
+    async updateCliente(id, data) {
+        try {
+            const cliente = await cliente_repository_1.clienteRepository.update(id, data);
+            return cliente;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    //funcion para eliminar un cliente
+    async deleteCliente(id) {
+        try {
+            await cliente_repository_1.clienteRepository.delete(id);
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    //funcion para obtener la cuenta corriente de un cliente
+    async getCuentaCorrienteDetalle(clienteId) {
+        try {
+            const cuentaCorriente = await cliente_repository_1.clienteRepository.getCuentaCorrientePendienteByClienteId(clienteId);
+            if (!cuentaCorriente) {
+                throw new Error("El cliente no tiene cuenta corriente");
+            }
+            return cuentaCorriente;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async getResumenCuentaCorriente(clienteId) {
+        try {
+            const cuentaCorriente = await cliente_repository_1.clienteRepository.getCuentaCorrientePendienteByClienteId(clienteId);
+            if (!cuentaCorriente) {
+                throw new Error("El cliente no tiene cuenta corriente");
+            }
+            const totalDeuda = Number(cuentaCorriente.saldoActual);
+            const limiteCredito = Number(cuentaCorriente.cliente.limiteCredito);
+            const creditoDisponible = limiteCredito - totalDeuda;
+            return {
+                cliente: cuentaCorriente.cliente,
+                saldoActual: totalDeuda,
+                limiteCredito,
+                creditoDisponible,
+                condicionPago: cuentaCorriente.condicionPago,
+                fechaProximoVencimiento: cuentaCorriente.fechaProximoVencimiento,
+                ventas: cuentaCorriente.movimientos.map((mov) => ({
+                    numeroVenta: mov.venta.numeroVenta,
+                    fechaVenta: mov.venta.fechaVenta,
+                    total: mov.venta.total,
+                    estado: mov.venta.estado,
+                    ventaId: mov.venta.id,
+                    detalles: mov.venta.detalles,
+                })),
+                resumen: {
+                    cantidadVentasPendientes: cuentaCorriente.movimientos.length,
+                    totalDeuda,
+                    estadoCuenta: totalDeuda > limiteCredito ? "excedido" : "normal",
+                },
+            };
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    // Ver detalles de una venta específica
+    async getDetalleVenta(ventaId) {
+        try {
+            const venta = await cliente_repository_1.clienteRepository.getDetalleVentaCuentaCorriente(ventaId);
+            if (!venta) {
+                throw new Error("Venta no encontrada");
+            }
+            return venta;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    //ahora vamos hacer la funcion para hacer el pago de la cuenta corriente de un cliente
+    async pagarCuentaCorriente(data) {
+        try {
+            // Paso 1: Validar que el cliente existe y tiene cuenta corriente
+            const cuentaCorriente = await database_1.prisma.cuentaCorriente.findFirst({
+                where: { clienteId: data.clienteId },
+                include: {
+                    cliente: true,
+                },
+            });
+            if (!cuentaCorriente) {
+                throw new Error("El cliente no tiene cuenta corriente");
+            }
+            // Paso 2: Validar que el monto sea válido
+            const saldoActual = Number(cuentaCorriente.saldoActual);
+            if (data.monto <= 0) {
+                throw new Error("El monto debe ser mayor a cero");
+            }
+            if (data.monto > saldoActual) {
+                throw new Error(`El monto excede la deuda actual (${saldoActual}). ` +
+                    `Puedes pagar hasta ese monto.`);
+            }
+            // Paso 3: Verificar que hay una caja abierta
+            const cajaAbierta = await caja_repository_1.cajaRepository.findByUsuarioIdAndEstado(data.usuarioId, "abierta");
+            if (!cajaAbierta) {
+                throw new Error("No hay una caja abierta. Debes abrir caja primero.");
+            }
+            // Paso 4: Iniciar transacción para garantizar consistencia
+            const resultado = await database_1.prisma.$transaction(async (tx) => {
+                // 4.1: Crear el registro de pago
+                const pago = await tx.pago.create({
+                    data: {
+                        clienteId: data.clienteId,
+                        ventaId: null, // Es pago general de cuenta corriente
+                        medioPagoId: data.medioPagoId,
+                        monto: data.monto,
+                        referencia: data.referencia || null,
+                        usuarioId: data.usuarioId,
+                        observaciones: data.observaciones || "Pago de cuenta corriente",
+                    },
+                });
+                // 4.2: Calcular nuevo saldo
+                const saldoAnterior = Number(cuentaCorriente.saldoActual);
+                const saldoNuevo = saldoAnterior - data.monto;
+                // 4.3: Crear movimiento de cuenta corriente
+                await tx.movimientoCuentaCorriente.create({
+                    data: {
+                        cuentaCorrienteId: cuentaCorriente.id,
+                        tipoMovimiento: "pago",
+                        monto: data.monto,
+                        saldoAnterior: saldoAnterior,
+                        saldoNuevo: saldoNuevo,
+                        pagoId: pago.id,
+                        descripcion: `Pago de cuenta corriente - ${data.observaciones || ""}`,
+                    },
+                });
+                // 4.4: Actualizar saldo de cuenta corriente
+                await tx.cuentaCorriente.update({
+                    where: { id: cuentaCorriente.id },
+                    data: {
+                        saldoActual: saldoNuevo,
+                    },
+                });
+                // 4.5: Registrar movimiento en caja
+                await tx.cajaMovimiento.create({
+                    data: {
+                        cajaId: cajaAbierta.id,
+                        pagoId: pago.id,
+                        tipoMovimiento: "ingreso", // Es un ingreso a caja
+                        medioPagoId: data.medioPagoId,
+                        monto: data.monto,
+                        descripcion: `Pago cuenta corriente - ${cuentaCorriente.cliente.nombre} ${cuentaCorriente.cliente.apellido || ""}`,
+                    },
+                });
+                // 4.6: Opcional - Actualizar estado de ventas si se pagó toda la deuda
+                if (saldoNuevo === 0) {
+                    // Obtener todas las ventas pendientes del cliente
+                    const ventasPendientes = await tx.movimientoCuentaCorriente.findMany({
+                        where: {
+                            cuentaCorrienteId: cuentaCorriente.id,
+                            tipoMovimiento: "cargo",
+                            venta: {
+                                estado: "pendiente",
+                            },
+                        },
+                        select: {
+                            ventaId: true,
+                        },
+                    });
+                    // Marcar ventas como pagadas
+                    if (ventasPendientes.length > 0) {
+                        await tx.venta.updateMany({
+                            where: {
+                                id: {
+                                    in: ventasPendientes
+                                        .map((m) => m.ventaId)
+                                        .filter((id) => id !== null),
+                                },
+                            },
+                            data: {
+                                estado: "pagada",
+                            },
+                        });
+                    }
+                }
+                return {
+                    pago,
+                    saldoAnterior,
+                    saldoNuevo,
+                    mensaje: saldoNuevo === 0
+                        ? "Cuenta corriente saldada completamente"
+                        : `Pago registrado. Saldo restante: ${saldoNuevo}`,
+                };
+            });
+            return resultado;
+        }
+        catch (error) {
+            console.error("Error al procesar pago:", error);
+            throw error;
+        }
+    }
+    async pagarVentasEspecificas(data) {
+        try {
+            const cuentaCorriente = await database_1.prisma.cuentaCorriente.findFirst({
+                where: { clienteId: data.clienteId },
+            });
+            if (!cuentaCorriente) {
+                throw new Error("Cliente sin cuenta corriente");
+            }
+            const cajaAbierta = await caja_repository_1.cajaRepository.findByUsuarioIdAndEstado(data.usuarioId, "abierta");
+            if (!cajaAbierta) {
+                throw new Error("No hay caja abierta");
+            }
+            const montoTotal = data.ventasAPagar.reduce((sum, v) => sum + v.monto, 0);
+            const resultado = await database_1.prisma.$transaction(async (tx) => {
+                const pagosCreados = [];
+                for (const ventaPago of data.ventasAPagar) {
+                    // Crear pago por cada venta
+                    const pago = await tx.pago.create({
+                        data: {
+                            clienteId: data.clienteId,
+                            ventaId: ventaPago.ventaId,
+                            medioPagoId: data.medioPagoId,
+                            monto: ventaPago.monto,
+                            referencia: data.referencia || null,
+                            usuarioId: data.usuarioId,
+                            observaciones: `Pago venta específica`,
+                        },
+                    });
+                    pagosCreados.push(pago);
+                    // Verificar si la venta quedó totalmente pagada
+                    const venta = await tx.venta.findUnique({
+                        where: { id: ventaPago.ventaId },
+                        include: { pagos: true },
+                    });
+                    if (venta) {
+                        const totalPagado = venta.pagos.reduce((sum, p) => sum + Number(p.monto), 0);
+                        if (totalPagado >= Number(venta.total)) {
+                            await tx.venta.update({
+                                where: { id: ventaPago.ventaId },
+                                data: { estado: "pagada" },
+                            });
+                        }
+                    }
+                }
+                // Actualizar cuenta corriente
+                const saldoAnterior = Number(cuentaCorriente.saldoActual);
+                const saldoNuevo = saldoAnterior - montoTotal;
+                await tx.movimientoCuentaCorriente.create({
+                    data: {
+                        cuentaCorrienteId: cuentaCorriente.id,
+                        tipoMovimiento: "pago",
+                        monto: montoTotal,
+                        saldoAnterior,
+                        saldoNuevo,
+                        descripcion: `Pago de ${data.ventasAPagar.length} venta(s)`,
+                    },
+                });
+                await tx.cuentaCorriente.update({
+                    where: { id: cuentaCorriente.id },
+                    data: { saldoActual: saldoNuevo },
+                });
+                // Registrar en caja
+                await tx.cajaMovimiento.create({
+                    data: {
+                        cajaId: cajaAbierta.id,
+                        pagoId: pagosCreados[0].id,
+                        tipoMovimiento: "ingreso",
+                        medioPagoId: data.medioPagoId,
+                        monto: montoTotal,
+                        descripcion: `Pago ventas específicas`,
+                    },
+                });
+                return {
+                    pagosCreados,
+                    saldoAnterior,
+                    saldoNuevo,
+                    totalPagado: montoTotal,
+                };
+            });
+            return resultado;
+        }
+        catch (error) {
+            console.error("Error:", error);
+            throw error;
+        }
+    }
+    //servicio para cambiar el estado de un cliente
+    async changeStatus(id, activo, user) {
+        const idCliente = Number(id);
+        const cliente = await cliente_repository_1.clienteRepository.findById(idCliente);
+        if (!cliente) {
+            throw new Error("Cliente no encontrado");
+        }
+        const clienteActivo = !cliente.activo;
+        const updatedCliente = await cliente_repository_1.clienteRepository.update(idCliente, {
+            activo: clienteActivo,
+        });
+        //auditoria
+        await auditoria_repository_1.auditoriaRepository.create({
+            usuarioId: user?.id || 1,
+            accion: clienteActivo ? "Activar cliente" : "Desactivar cliente",
+            tablaAfectada: "Cliente",
+            registroId: idCliente,
+            datosAnteriores: JSON.stringify(cliente),
+            datosNuevos: JSON.stringify({ ...cliente, activo: clienteActivo }),
+        });
+        return updatedCliente;
+    }
+}
+exports.ClienteService = ClienteService;
+exports.clienteService = new ClienteService();

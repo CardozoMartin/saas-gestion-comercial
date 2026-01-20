@@ -1,9 +1,14 @@
-import { Router } from 'express';
-import { ventaController } from '../controllers/venta.controller';
-import { loginDataHandler } from '@/middlewares/loginDataHandler';
+import { Router } from "express";
+import { ventaController } from "../controllers/venta.controller";
+import { checkRole, loginDataHandler } from "@/middlewares/loginDataHandler";
 
 const router = Router();
 
-router.post('/',loginDataHandler, ventaController.createVenta);
+router.post(
+  "/",
+  loginDataHandler,
+  checkRole("admin", "cajero"),
+  ventaController.createVenta,
+);
 
 export default router;

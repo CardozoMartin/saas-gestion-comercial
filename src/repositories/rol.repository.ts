@@ -40,14 +40,14 @@ export class RolRepository {
         return rol;
     }
     //metodo para asignar un rol a un usuario
-    async asignarRolUsuario(data: IAsignarRolUsuario): Promise<void> {
-        await prisma.usuarioRol.create({
-            data: {
-                usuarioId: data.usuarioId,
-                rolId: data.rolId,
-            },
-        });
-    }
+   async asignarRolUsuario(data: IAsignarRolUsuario): Promise<void> {
+    await prisma.usuarioRol.create({
+      data: {
+        usuarioId: data.usuarioId,
+        rolId: data.rolId,
+      },
+    });
+  }
 
     //metodo para eliminar un rol
     async delete(id: number): Promise<void> {

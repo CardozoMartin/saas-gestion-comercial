@@ -249,3 +249,14 @@ CREATE INDEX idx_movimientos_stock_producto ON movimientos_stock(producto_id);
 CREATE INDEX idx_movimientos_stock_fecha ON movimientos_stock(fecha_movimiento);
 CREATE INDEX idx_clientes_activo ON clientes(activo);
 CREATE INDEX idx_cajas_usuario_estado ON cajas(usuario_id, estado);
+
+
+ALTER TABLE cajas 
+ADD COLUMN monto_final_contado DECIMAL(10,2) AFTER monto_final,
+ADD COLUMN monto_retirado DECIMAL(10,2) DEFAULT 0 AFTER monto_final_contado,
+ADD COLUMN fondo_siguiente_caja DECIMAL(10,2) AFTER monto_retirado;
+
+-- La siguiente caja DEBE iniciar con ese fondo
+ALTER TABLE cajas
+ADD COLUMN caja_anterior_id INT NULL AFTER usuario_id,
+ADD FOREIGN KEY (caja_anterior_id) REFERENCES cajas(id);

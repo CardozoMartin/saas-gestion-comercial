@@ -225,6 +225,23 @@ export class ClienteController {
       });
     }
   }
+  //controlador para activar o desactivar un cliente
+    async toggleClienteActivo(req: Request, res: Response): Promise<Response> {
+        const idCliente = parseInt(req.params.id);
+        const user = req.user;
+        try {
+            const updatedCliente = await clienteService.changeStatus(idCliente, user);
+            return res.status(200).json({
+                message: `Cliente ${updatedCliente.activo ? 'activado' : 'desactivado'} exitosamente`,
+                data: updatedCliente
+            });
+        } catch (error) {
+            console.error('Error:', error);
+            return res.status(500).json({
+                error: error.message || 'Error al cambiar el estado del cliente'
+            });
+        }
+    }
 }
 
 export const clienteController = new ClienteController();
