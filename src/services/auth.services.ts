@@ -19,6 +19,7 @@ export class AuthService {
 
             // 2. Buscar usuario por email
             const usuarioConPassword = await usuarioRepository.findByEmailWithPassword(email);
+            console.log(usuarioConPassword);
             if (!usuarioConPassword) {
                 throw new Error('Email o contraseña incorrectos');
             }
@@ -35,7 +36,7 @@ export class AuthService {
             }
 
             // 5. Generar token
-            const token = this.generarToken(usuarioConPassword.id, usuarioConPassword.email);
+            const token = this.generarToken(usuarioConPassword.id, usuarioConPassword.email, usuarioConPassword.nombre, usuarioConPassword.roles);
 
             // 6. Retornar respuesta sin la contraseña
             const { password: _, ...usuarioSinPassword } = usuarioConPassword;
@@ -51,19 +52,26 @@ export class AuthService {
     }
 
     // Método privado para generar token JWT
-    private generarToken(usuarioId: number, email: string): string {
-        const payload = {
-            id: usuarioId,
-            email: email,
-            iat: Math.floor(Date.now() / 1000), // timestamp
-        };
+ private generarToken(
+    usuarioId: number, 
+    email: string, 
+    nombre: string, 
+    roles: Array<{ id: number; nombre: string; descripcion: string }>
+): string {
+    const payload = {
+        id: usuarioId,
+        email: email,
+        nombre: nombre,
+        roles: roles, // ← Cambiar de "rol" a "roles" y pasar el array completo
+        iat: Math.floor(Date.now() / 1000),
+    };
 
-        return jwt.sign(
-            payload,
-            env.JWT_SECRET,
-            { expiresIn: env.JWT_EXPIRES_IN }
-        );
-    }
+    return jwt.sign(
+        payload,
+        env.JWT_SECRET,
+        { expiresIn: env.JWT_EXPIRES_IN }
+    );
+ }
 }
 
 export const authService = new AuthService();

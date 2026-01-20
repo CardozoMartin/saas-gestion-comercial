@@ -1,18 +1,19 @@
 import { Router } from 'express';
 import { rolController } from '@controllers/rol.controller';
+import { loginDataHandler } from '@/middlewares/loginDataHandler';
 
 const router = Router();
 
 //Get
-router.get('/', rolController.getAllRoles.bind(rolController)); 
+router.get('/',loginDataHandler, rolController.getAllRoles.bind(rolController)); 
 
 //Post
-router.post('/', rolController.createRol.bind(rolController));
+router.post('/', loginDataHandler, rolController.createRol.bind(rolController));
 
 //Put
-router.put('/:id', rolController.updateRol.bind(rolController));
+router.put('/:id', loginDataHandler, rolController.updateRol.bind(rolController));
 
 //Delete
-router.delete('/:id', rolController.deleteRol.bind(rolController));
+router.delete('/:id', loginDataHandler, rolController.deleteRol.bind(rolController));
 
 export default router;

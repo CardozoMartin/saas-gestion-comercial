@@ -5,6 +5,7 @@ export interface IUsuario {
   apellido: string;
   email: string;
   telefono?: string | null;
+  rol: string;
   activo: boolean;
   fechaCreacion: Date;
   fechaActualizacion: Date;
@@ -15,6 +16,7 @@ export interface ICreateUsuario {
   nombre: string;
   apellido: string;
   email: string;
+  rolId:number;
   password: string;
   telefono?: string;
 }

@@ -5,6 +5,7 @@ import { ICreateVentaInput } from "@/types/venta.types";
 class VentaController {
 
     async createVenta(req: Request, res: Response): Promise<Response> {
+       
         try {
             const ventaData: ICreateVentaInput = req.body;
             const user = req.user;
@@ -15,6 +16,7 @@ class VentaController {
                 data: venta
             });
         } catch (error: any) {
+            console.log(error)
             return res.status(400).json({ 
                 success: false,
                 message: 'Error al crear la venta', 

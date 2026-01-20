@@ -145,4 +145,10 @@ export class CuentaCorrienteRepository {
             where: { id }
         });
     }
+   
+
 }
+
+
+export const condicionPagoRepository = new CondicionPagoRepository();
+export const cuentaCorrienteRepository = new CuentaCorrienteRepository();

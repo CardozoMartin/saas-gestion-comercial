@@ -2,6 +2,7 @@ import { usuarioRepository } from '@repositories/usuario.repository';
 import { ICreateUsuario, ILoginUsuario, IUpdateUsuario, IUsuario } from '@types/usuario.types';
 import { rolRepository } from '@/repositories/rol.repository';
 import bcrypt from 'bcryptjs';
+import { prisma } from '@/config/database';
 
 
 export class UsuarioService {
@@ -31,29 +32,42 @@ export class UsuarioService {
     }
 
 
-    async createUsuario(data: ICreateUsuario): Promise<IUsuario> {
-        try {
-            // Validar si el email ya existe
-            const emailExists = await usuarioRepository.emailExists(data.email);
-            if (emailExists) {
-                throw new Error('El email ya está registrado');
-            }
+  async createUsuario(data: ICreateUsuario): Promise<IUsuario> {
+    console.log('createUsuario data:', data);
+    try {
+      // Validar si el email ya existe
+      const emailExists = await usuarioRepository.emailExists(data.email);
+      if (emailExists) {
+        throw new Error('El email ya está registrado');
+      }
 
+      // Validar que se proporcione un rolId
+      if (!data.rolId) {
+        throw new Error('El rolId es requerido');
+      }
 
-            // Crear usuario
-            const usuario = await usuarioRepository.create(data);
+      // Iniciar transacción
+      return await prisma.$transaction(async (tx) => {
+        // 1. Crear usuario (esto retorna el usuario con su ID)
+        const usuario = await usuarioRepository.create(data);
 
-            //ahora asiganamos el rol por defecto de ' usuario nuevo 
-            await rolRepository.asignarRolUsuario({
-                usuarioId: usuario.id,
-                rolId: 2,
-            });
+        console.log('Usuario creado con ID:', usuario.id);
 
-            return usuario;
-        } catch (error) {
-            throw error;
-        }
+        // 2. Asignar el rol al usuario usando el ID del usuario recién creado
+        await rolRepository.asignarRolUsuario({
+          usuarioId: usuario.id, // Usamos el ID del usuario creado
+          rolId: data.rolId,      // Usamos el rolId que viene en el data
+        });
+
+        console.log('Rol asignado correctamente');
+
+        return usuario;
+      });
+    } catch (error) {
+      console.error('Error en createUsuario:', error);
+      throw error;
     }
+  }
 
 
     async updateUsuario(id: string, data: IUpdateUsuario): Promise<IUsuario> {

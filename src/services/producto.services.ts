@@ -2,31 +2,75 @@ import { productoRepository } from "@/repositories/producto.repository";
 import { stockRepository } from "@/repositories/stock.repository";
 import { auditoriaRepository } from "@/repositories/auditoria.repository";
 import { prisma } from '@config/database';
-import { IProducto, ICreateProducto, IUpdateProducto,IProductoPaginatedResult } from '@/types/producto.types';
+import { IProducto, ICreateProducto, IUpdateProducto, IProductoPaginatedResult, IProductoPagination } from '@/types/producto.types';
+import { movimientoStockRepository } from "@/repositories/movimiento-stock.repository";
 
+interface ProductoDTO {
+    id: number;
+    codigo: string;
+    nombre: string;
+    precioVenta: number;
+    stockActual: number;
+    categoriaNombre?: string;
+    unidadMedidaNombre?: string;
+}
 export class ProductoService {
 
-    
-    async getAllProductos(): Promise<IProducto[]> {
+
+    async getAllProductos(params?: IProductoPagination): Promise<IProductoPaginatedResult> {
+        return await productoRepository.findAll(params);
+
+    }
+
+    async getProductosSinPaginacion(): Promise<IProducto[]> {
+        const productos = await productoRepository.findAllWithoutPagination();
         
-        return await productoRepository.findAll();
+        //producto DTO
+        const productoDTOs: ProductoDTO[] = productos.map((producto) => ({
+            id: producto.id,
+            codigo: producto.codigo,
+            nombre: producto.nombre,
+            precioVenta: producto.precioVenta,
+            stockActual: producto.stockActual ? producto.stockActual.cantidad : 0,
+            categoriaNombre: producto.categoria ? producto.categoria.nombre : undefined,
+            unidadMedidaNombre: producto.unidadMedida ? producto.unidadMedida.nombre : undefined,
+            unidadMedidaId: producto.unidadMedidaId
+        }));
+
+        return productoDTOs;
     }
 
     async getProductoById(id: string): Promise<IProductoPaginatedResult> {
         const idNumber = this.parseId(id);
+
+        //vamos agregar paginacion
+
         const producto = await productoRepository.findById(idNumber);
-        
+
         if (!producto) {
             throw new Error('Producto no encontrado');
         }
-        
+
         return producto;
     }
 
-    
+
     async createProducto(data: ICreateProducto, user: any): Promise<IProducto> {
         // 1. Validaciones de negocio
         await this.validarCreacionProducto(data);
+
+        //convertimos las cantidades kg, litro y cm a gramos, mililitros y milimetros
+        //verificamos que unidad llega para el nuevo producto
+        if (data.unidadMedidaId === 2) { //kg a gramos
+            data.cantidadInicial = data.cantidadInicial ? data.cantidadInicial * 1000 : 0;
+        } else if (data.unidadMedidaId === 3) { //litro a mililitros
+            data.cantidadInicial = data.cantidadInicial ? data.cantidadInicial * 1000 : 0;
+        } else if (data.unidadMedidaId === 4) { //cm a milimetros
+            data.cantidadInicial = data.cantidadInicial ? data.cantidadInicial * 10 : 0;
+        }
+
+
+
 
         // 2. Transacción compleja con lógica de negocio
         return await prisma.$transaction(async (tx) => {
@@ -35,15 +79,15 @@ export class ProductoService {
 
             // Crear stock inicial
             await productoRepository.createStockActual(
-                producto.id, 
+                producto.id,
                 data.cantidadInicial ?? 0
             );
 
             // Registrar movimiento si hay stock inicial
             if (data.cantidadInicial && data.cantidadInicial > 0) {
                 await this.registrarMovimientoInicial(
-                    producto.id, 
-                    data.cantidadInicial, 
+                    producto.id,
+                    data.cantidadInicial,
                     user
                 );
             }
@@ -61,7 +105,6 @@ export class ProductoService {
         });
     }
 
-    
     async updateProducto(id: string, data: IUpdateProducto, user: any): Promise<IProducto> {
         const idNumber = this.parseId(id);
 
@@ -78,7 +121,7 @@ export class ProductoService {
 
             // Actualizar producto
             const productoActualizado = await productoRepository.update(
-                idNumber, 
+                idNumber,
                 this.construirDatosActualizacion(data, productoActual)
             );
 
@@ -101,7 +144,7 @@ export class ProductoService {
         });
     }
 
-    
+
     async deleteProducto(id: string, user: any): Promise<IProducto> {
         const idNumber = this.parseId(id);
 
@@ -122,8 +165,73 @@ export class ProductoService {
         return producto;
     }
 
-   
+    async changeProductoStatus(id: string): Promise<IProducto> {
+        const idNumber = this.parseId(id);
+        const productoActual = await productoRepository.findById(idNumber);
+        if (!productoActual) {
+            throw new Error('Producto no encontrado');
+        }
+        const activo = !productoActual.activo;
+        const productoActualizado = await productoRepository.update(idNumber, { activo });
+
+        // Auditoría
+        await auditoriaRepository.create({
+            usuarioId: user?.id || 1,
+            accion: activo ? 'ACTIVAR_PRODUCTO' : 'DESACTIVAR_PRODUCTO',
+            tablaAfectada: 'productos',
+            registroId: idNumber,
+            datosAnteriores: JSON.stringify(productoActual),
+            datosNuevos: JSON.stringify(productoActualizado)
+        });
+        return productoActualizado;
+    }
+    //servicio para obtener los 10 productos con mas bajo stock
+    async getLowStockProducts(): Promise<IProducto[]> {
+    const productos = await productoRepository.findLowStockProducts();
+    return productos;
+}
+
+//servico para actualizar unicamente el stock de un producto
+async updateProductoStock(id: string, cantidad: number, user: any): Promise<IProducto> {
+    const idNumber = this.parseId(id);
+
+    // Obtener datos previos
+    const productoActual = await productoRepository.findById(idNumber);
+    console.log("En servicio - productoActual:", productoActual); // 👈 Agrega esto
+    if (!productoActual) {
+        throw new Error('Producto no encontrado');
+    }
     
+    // Actualizar stock
+    return await prisma.$transaction(async (tx) => {
+
+        // Actualizar stock
+        await productoRepository.updateStock(idNumber, cantidad);
+
+        // Registrar movimiento
+        await movimientoStockRepository.create({
+            productoId: idNumber,
+            tipoMovimiento: 'ajuste',
+            cantidad,
+            motivo: 'Ajuste de stock manual',
+            usuarioId: user?.id || 1,
+            referenciaId: null,
+            referenciaTipo: 'ajuste_stock'
+        });
+
+        //auditoria
+        await auditoriaRepository.create({
+            usuarioId: user?.id || 1,
+            accion: 'ACTUALIZAR_STOCK_PRODUCTO',
+            tablaAfectada: 'productos',
+            registroId: idNumber,
+            datosAnteriores: JSON.stringify(productoActual),
+            datosNuevos: JSON.stringify({ ...productoActual, stockActual: cantidad })
+        });
+    })
+}
+
+
     private async validarCreacionProducto(data: ICreateProducto): Promise<void> {
         // Validar código único
         const existeCodigo = await productoRepository.findByCodigo(data.codigo);
@@ -201,7 +309,7 @@ export class ProductoService {
 
     private async actualizarStockProducto(productoId: number, nuevaCantidad: number): Promise<void> {
         const stockActual = await productoRepository.getStockActual(productoId);
-        
+
         if (stockActual) {
             await productoRepository.updateStockActual(productoId, nuevaCantidad);
         } else {

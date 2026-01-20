@@ -6,6 +6,8 @@ import ventaRoutes from './venta.routes';
 import cajaRoutes from './caja.routes';
 import categoryRoutes from './category.routes';
 import unitsRoutes from './units.route';
+import clienteRoutes from './cliente.route';
+import recaudadoRoutes from './recaudado.route';
 
 export const registerRoutes = (app: Express) => {
     
@@ -28,6 +30,8 @@ export const registerRoutes = (app: Express) => {
     router.use('/cajas', cajaRoutes);
     router.use('/categories', categoryRoutes);
     router.use('/units', unitsRoutes);
+    router.use('/clientes', clienteRoutes);
+    router.use('/recaudado', recaudadoRoutes);
 
 
     app.use('/api/v1', router);

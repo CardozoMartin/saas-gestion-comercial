@@ -7,6 +7,7 @@ export const createUsuarioSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   telefono: z.string().optional(),
+  rolId: z.number().int('El rolId debe ser un número entero'),
 });
 
 // Esquema para actualizar usuario
@@ -15,12 +16,14 @@ export const updateUsuarioSchema = z.object({
   apellido: z.string().min(2).optional(),
   telefono: z.string().optional(),
   activo: z.boolean().optional(),
+  rolId: z.number().int('El rolId debe ser un número entero').optional(),
 });
 
 // Esquema para login
 export const loginSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Contraseña inválida'),
+  
 });
 
 // Tipo inferido de TypeScript (opcional pero útil)
