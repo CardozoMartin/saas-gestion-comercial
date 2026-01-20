@@ -1,29 +1,29 @@
-import { usuarioRepository } from "@/repositories/usuario.repository";
-import { productoRepository } from "@/repositories/producto.repository";
-import { clienteRepository } from "@/repositories/cliente.repository";
+import { usuarioRepository } from "../repositories/usuario.repository";
+import { productoRepository } from "../repositories/producto.repository";
+import { clienteRepository } from "../repositories/cliente.repository";
 import {
   ventaDetalleRepository,
   ventaRepository,
-} from "@/repositories/venta.repository";
-import { stockRepository } from "@/repositories/stock.repository";
+} from "../repositories/venta.repository";
+import { stockRepository } from "../repositories/stock.repository";
 import {
   cajaRepository,
   cajaMovimientoRepository,
-} from "@/repositories/caja.repository";
-import { prisma } from "@config/database";
+} from "../repositories/caja.repository";
+import { prisma } from "../config/database";
 import {
   IVenta,
   ICreateVentaInput,
   TipoVenta,
   EstadoVenta,
-} from "@/types/venta.types";
+} from "../types/venta.types";
 import Decimal from 'decimal.js';
-import { auditoriaRepository } from "@/repositories/auditoria.repository";
-import { pagoRepository } from "@/repositories/medio-pago.repository";
+import { auditoriaRepository } from "../repositories/auditoria.repository";
+import { pagoRepository } from "../repositories/medio-pago.repository";
 import { cajaService } from "./caja.services";
 import { unitConversionService } from "./UnitConversionService";
-import { unidadMedidaRepository } from "@/repositories/unidad-medida.repository";
-import {accountTransactionRepository} from "@/repositories/AccountTransaction";
+import { unidadMedidaRepository } from "../repositories/unidad-medida.repository";
+import {accountTransactionRepository} from "../repositories/AccountTransaction";
 
 export class VentaService {
   // Generar número de venta único

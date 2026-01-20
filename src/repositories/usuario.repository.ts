@@ -1,8 +1,8 @@
-import { prisma } from "@config/database";
-import { ICreateUsuario, IUpdateUsuario, IUsuario } from "@/types/usuario.types";
+import { prisma } from "../config/database";
+import { ICreateUsuario, IUpdateUsuario, IUsuario } from "../types/usuario.types";
 import { Usuario } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { DtoUsuarioInterno } from "@/types/usuario.types";
+import { DtoUsuarioInterno } from "../types/usuario.types";
 
 export class UsuarioRepository {
   async findAll(): Promise<IUsuario[]> {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { productoController } from '@controllers/productos.controller';
-import { checkRole, loginDataHandler } from '@middlewares/loginDataHandler';
+import { productoController } from '../controllers/productos.controller';
+import { checkRole, loginDataHandler } from '../middlewares/loginDataHandler';
 const router = Router();
 
 //Rutas para obtener productos

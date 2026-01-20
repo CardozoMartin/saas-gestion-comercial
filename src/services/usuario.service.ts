@@ -1,8 +1,8 @@
-import { usuarioRepository } from '@repositories/usuario.repository';
-import { ICreateUsuario, ILoginUsuario, IUpdateUsuario, IUsuario } from '@/types/usuario.types';
-import { rolRepository } from '@/repositories/rol.repository';
+import { usuarioRepository } from '../repositories/usuario.repository';
+import { ICreateUsuario, ILoginUsuario, IUpdateUsuario, IUsuario } from '../types/usuario.types';
+import { rolRepository } from '../repositories/rol.repository';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/config/database';
+import { prisma } from '../config/database';
 
 
 export class UsuarioService {

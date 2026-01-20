@@ -1,7 +1,7 @@
-import { cajaRepository, cajaMovimientoRepository } from "@/repositories/caja.repository";
-import { pagoRepository } from "@/repositories/medio-pago.repository";
-import { prisma } from '@config/database';
-import { ICaja, ICreateCaja } from '@/types/caja.types';
+import { cajaRepository, cajaMovimientoRepository } from "../repositories/caja.repository";
+import { pagoRepository } from "../repositories/medio-pago.repository";
+import { prisma } from '../config/database';
+import { ICaja, ICreateCaja } from '../types/caja.types';
 import Decimal from 'decimal.js';
 
 export class CajaService {

@@ -1,4 +1,4 @@
-import {UnidadMedidaRepository} from '@repositories/unidad-medida.repository';
+import {UnidadMedidaRepository} from '../repositories/unidad-medida.repository';
 import {IUnidadMedida, ICreateUnidadMedida, IUpdateUnidadMedida } from '../types/unidad-medida.types'
 
 export class UnitsService {

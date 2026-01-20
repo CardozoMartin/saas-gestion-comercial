@@ -1,5 +1,5 @@
-import { prisma } from '@config/database';
-import { IUnidadMedida, ICreateUnidadMedida, IUpdateUnidadMedida } from '@/types/unidad-medida.types';
+import { prisma } from '../config/database';
+import { IUnidadMedida, ICreateUnidadMedida, IUpdateUnidadMedida } from '../types/unidad-medida.types';
 
 export class UnidadMedidaRepository {
 

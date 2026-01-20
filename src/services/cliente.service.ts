@@ -1,16 +1,13 @@
-import { prisma } from "@/config/database";
-import { clienteRepository } from "@/repositories/cliente.repository";
+import { prisma } from "../config/database";
+import { clienteRepository } from "../repositories/cliente.repository";
 import {
   ICliente,
   ICreateCliente,
   IUpdateCliente,
-} from "@/types/cliente.types";
-import { cuentaCorrienteRepository } from "@/repositories/condicion-pago.repository";
-import { accountTransactionRepository } from "@/repositories/AccountTransaction";
-import { Prisma } from "@prisma/client";
-import { cajaRepository } from "@/repositories/caja.repository";
-import { de } from "zod/v4/locales";
-import { auditoriaRepository } from "@/repositories/auditoria.repository";
+} from "../types/cliente.types";
+import { cuentaCorrienteRepository } from "../repositories/condicion-pago.repository";
+import { cajaRepository } from "../repositories/caja.repository";
+import { auditoriaRepository } from "../repositories/auditoria.repository";
 interface IPagarCuentaCorriente {
   clienteId: number;
   monto: number;

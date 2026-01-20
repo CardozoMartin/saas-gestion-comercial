@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { categoryController } from "@/controllers/category.controller";
-import { loginDataHandler } from "@/middlewares/loginDataHandler";
+import { categoryController } from "../controllers/category.controller";
+import { loginDataHandler } from "../middlewares/loginDataHandler";
 
 const router = Router();
 

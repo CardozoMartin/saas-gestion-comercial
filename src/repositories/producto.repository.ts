@@ -1,11 +1,11 @@
-import { prisma } from "@config/database";
+import { prisma } from "../config/database";
 import {
   IProducto,
   ICreateProducto,
   IUpdateProducto,
   IProductoPagination,
   IProductoPaginatedResult,
-} from "@/types/producto.types";
+} from "../types/producto.types";
 
 export class ProductoRepository {
   async findAll(

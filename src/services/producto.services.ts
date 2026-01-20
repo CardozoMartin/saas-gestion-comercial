@@ -1,9 +1,9 @@
-import { productoRepository } from "@/repositories/producto.repository";
+import { productoRepository } from "../repositories/producto.repository";
 import { stockRepository } from "@/repositories/stock.repository";
-import { auditoriaRepository } from "@/repositories/auditoria.repository";
-import { prisma } from '@config/database';
-import { IProducto, ICreateProducto, IUpdateProducto, IProductoPaginatedResult, IProductoPagination } from '@/types/producto.types';
-import { movimientoStockRepository } from "@/repositories/movimiento-stock.repository";
+import { auditoriaRepository } from "../repositories/auditoria.repository";
+import { prisma } from '../config/database';
+import { IProducto, ICreateProducto, IUpdateProducto, IProductoPaginatedResult, IProductoPagination } from '../types/producto.types';
+import { movimientoStockRepository } from "../repositories/movimiento-stock.repository";
 
 interface ProductoDTO {
     id: number;

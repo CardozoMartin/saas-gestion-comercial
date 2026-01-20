@@ -1,5 +1,5 @@
-import { prisma } from '@config/database';
-import { ICondicionPago, ICreateCondicionPago, IUpdateCondicionPago, ICuentaCorriente, ICreateCuentaCorriente, IUpdateCuentaCorriente } from '@/types/condicion-pago.types';
+import { prisma } from '../config/database';
+import { ICondicionPago, ICreateCondicionPago, IUpdateCondicionPago, ICuentaCorriente, ICreateCuentaCorriente, IUpdateCuentaCorriente } from '../types/condicion-pago.types';
 
 export class CondicionPagoRepository {
 
