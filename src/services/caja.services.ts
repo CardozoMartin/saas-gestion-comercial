@@ -2,7 +2,7 @@ import { cajaRepository, cajaMovimientoRepository } from "@/repositories/caja.re
 import { pagoRepository } from "@/repositories/medio-pago.repository";
 import { prisma } from '@config/database';
 import { ICaja, ICreateCaja } from '@/types/caja.types';
-import { Decimal } from '@prisma/client/runtime/library';
+import Decimal from 'decimal.js';
 
 export class CajaService {
 

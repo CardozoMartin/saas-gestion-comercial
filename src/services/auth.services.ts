@@ -36,7 +36,7 @@ export class AuthService {
             }
 
             // 5. Generar token
-            const token = this.generarToken(usuarioConPassword.id, usuarioConPassword.email, usuarioConPassword.nombre, usuarioConPassword.roles);
+            const token = this.generarToken(usuarioConPassword.id, usuarioConPassword.email, usuarioConPassword.nombre, usuarioConPassword.roles || []);
 
             // 6. Retornar respuesta sin la contraseña
             const { password: _, ...usuarioSinPassword } = usuarioConPassword;
@@ -56,21 +56,19 @@ export class AuthService {
     usuarioId: number, 
     email: string, 
     nombre: string, 
-    roles: Array<{ id: number; nombre: string; descripcion: string }>
+    roles: Array<{ id: number; nombre: string; descripcion?: string }>
 ): string {
     const payload = {
         id: usuarioId,
         email: email,
         nombre: nombre,
-        roles: roles, // ← Cambiar de "rol" a "roles" y pasar el array completo
+        roles: roles,
         iat: Math.floor(Date.now() / 1000),
     };
 
-    return jwt.sign(
-        payload,
-        env.JWT_SECRET,
-        { expiresIn: env.JWT_EXPIRES_IN }
-    );
+    const options = { expiresIn: env.JWT_EXPIRES_IN } as import('jsonwebtoken').SignOptions;
+
+    return jwt.sign(payload, env.JWT_SECRET as import('jsonwebtoken').Secret, options);
  }
 }
 

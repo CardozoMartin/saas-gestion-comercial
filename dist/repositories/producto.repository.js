@@ -12,9 +12,9 @@ class ProductoRepository {
         const where = {};
         if (params?.search) {
             where.OR = [
-                { nombre: { contains: params.search, mode: 'insensitive' } },
-                { codigo: { contains: params.search, mode: 'insensitive' } },
-                { descripcion: { contains: params.search, mode: 'insensitive' } }
+                { nombre: { contains: params.search, mode: "insensitive" } },
+                { codigo: { contains: params.search, mode: "insensitive" } },
+                { descripcion: { contains: params.search, mode: "insensitive" } },
             ];
         }
         if (params?.categoriaId) {
@@ -26,10 +26,10 @@ class ProductoRepository {
         // Construir ordenamiento
         const orderBy = {};
         if (params?.sortBy) {
-            orderBy[params.sortBy] = params.sortOrder || 'asc';
+            orderBy[params.sortBy] = params.sortOrder || "asc";
         }
         else {
-            orderBy.fechaCreacion = 'desc'; // Default
+            orderBy.fechaCreacion = "desc"; // Default
         }
         // Ejecutar queries en paralelo
         const [productos, total] = await Promise.all([
@@ -55,25 +55,25 @@ class ProductoRepository {
                     categoria: {
                         select: {
                             id: true,
-                            nombre: true
-                        }
+                            nombre: true,
+                        },
                     },
                     unidadMedida: {
                         select: {
                             id: true,
-                            nombre: true
-                        }
+                            nombre: true,
+                        },
                     },
                     stockActual: {
                         select: {
                             id: true,
                             cantidad: true,
-                            fechaActualizacion: true
-                        }
-                    }
-                }
+                            fechaActualizacion: true,
+                        },
+                    },
+                },
             }),
-            database_1.prisma.producto.count({ where })
+            database_1.prisma.producto.count({ where }),
         ]);
         const totalPages = Math.ceil(total / limit);
         return {
@@ -83,7 +83,7 @@ class ProductoRepository {
             limit,
             totalPages,
             hasNextPage: page < totalPages,
-            hasPrevPage: page > 1
+            hasPrevPage: page > 1,
         };
     }
     async findAllWithoutPagination() {
@@ -105,23 +105,23 @@ class ProductoRepository {
                 categoria: {
                     select: {
                         id: true,
-                        nombre: true
-                    }
+                        nombre: true,
+                    },
                 },
                 unidadMedida: {
                     select: {
                         id: true,
-                        nombre: true
-                    }
+                        nombre: true,
+                    },
                 },
                 stockActual: {
                     select: {
                         id: true,
                         cantidad: true,
-                        fechaActualizacion: true
-                    }
-                }
-            }
+                        fechaActualizacion: true,
+                    },
+                },
+            },
         });
     }
     async findById(id) {
@@ -140,8 +140,8 @@ class ProductoRepository {
                 stockMinimo: true,
                 activo: true,
                 fechaCreacion: true,
-                fechaActualizacion: true
-            }
+                fechaActualizacion: true,
+            },
         });
     }
     //obtendremos los 10 productos con mas bajo stock
@@ -173,7 +173,7 @@ class ProductoRepository {
     }
     async findByCodigo(codigo) {
         return await database_1.prisma.producto.findFirst({
-            where: { codigo }
+            where: { codigo },
         });
     }
     async create(data) {
@@ -188,7 +188,7 @@ class ProductoRepository {
                 unidadMedidaId: data.unidadMedidaId,
                 fraccionable: data.fraccionable || false,
                 stockMinimo: data.stockMinimo || 0,
-                activo: true
+                activo: true,
             },
             select: {
                 id: true,
@@ -203,8 +203,8 @@ class ProductoRepository {
                 stockMinimo: true,
                 activo: true,
                 fechaCreacion: true,
-                fechaActualizacion: true
-            }
+                fechaActualizacion: true,
+            },
         });
     }
     async update(id, data) {
@@ -224,8 +224,38 @@ class ProductoRepository {
                 stockMinimo: true,
                 activo: true,
                 fechaCreacion: true,
-                fechaActualizacion: true
-            }
+                fechaActualizacion: true,
+            },
+        });
+    }
+    //metodo para actualizar unicamente el stock de un producto seleccionado
+    async updateStock(id, cantidad) {
+        return await database_1.prisma.producto.update({
+            where: { id },
+            data: {
+                stockActual: {
+                    update: {
+                        cantidad: {
+                            increment: cantidad
+                        }
+                    }
+                }
+            },
+            select: {
+                id: true,
+                codigo: true,
+                nombre: true,
+                descripcion: true,
+                categoriaId: true,
+                precioCosto: true,
+                precioVenta: true,
+                unidadMedidaId: true,
+                fraccionable: true,
+                stockMinimo: true,
+                activo: true,
+                fechaCreacion: true,
+                fechaActualizacion: true,
+            },
         });
     }
     async delete(id) {
@@ -244,25 +274,25 @@ class ProductoRepository {
                 stockMinimo: true,
                 activo: true,
                 fechaCreacion: true,
-                fechaActualizacion: true
-            }
+                fechaActualizacion: true,
+            },
         });
     }
     // Métodos auxiliares solo para acceso a datos
     async createStockActual(productoId, cantidad) {
         return await database_1.prisma.stockActual.create({
-            data: { productoId, cantidad }
+            data: { productoId, cantidad },
         });
     }
     async updateStockActual(productoId, cantidad) {
         return await database_1.prisma.stockActual.update({
             where: { productoId },
-            data: { cantidad }
+            data: { cantidad },
         });
     }
     async getStockActual(productoId) {
         return await database_1.prisma.stockActual.findUnique({
-            where: { productoId }
+            where: { productoId },
         });
     }
     //metodo para cambiar el estado de un producto
@@ -283,8 +313,8 @@ class ProductoRepository {
                 stockMinimo: true,
                 activo: true,
                 fechaCreacion: true,
-                fechaActualizacion: true
-            }
+                fechaActualizacion: true,
+            },
         });
     }
 }

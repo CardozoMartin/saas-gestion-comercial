@@ -1,5 +1,5 @@
 import { prisma } from "@config/database";
-import { ICreateUsuario, IUpdateUsuario, IUsuario } from "@types/usuario.types";
+import { ICreateUsuario, IUpdateUsuario, IUsuario } from "@/types/usuario.types";
 import { Usuario } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DtoUsuarioInterno } from "@/types/usuario.types";
@@ -21,7 +21,7 @@ export class UsuarioRepository {
     return usuarios;
   }
 
-  async findById(id: string): Promise<IUsuario | null> {
+  async findById(id: number): Promise<IUsuario | null> {
     const usuario = await prisma.usuario.findUnique({
       where: { id },
       select: {
@@ -73,7 +73,7 @@ export class UsuarioRepository {
   }
 
 
-  async update(id: string, data: IUpdateUsuario): Promise<IUsuario> {
+  async update(id: number, data: IUpdateUsuario): Promise<IUsuario> {
     const usuario = await prisma.usuario.update({
       where: { id },
       data: {
@@ -96,7 +96,7 @@ export class UsuarioRepository {
     return usuario;
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: number): Promise<void> {
     await prisma.usuario.update({
       where: { id },
       data: { activo: false },
@@ -144,7 +144,11 @@ export class UsuarioRepository {
     // Transformar la estructura para obtener solo los roles
     return {
       ...usuario,
-      roles: usuario.roles.map((r) => r.rol),
+      roles: usuario.roles.map((r) => ({
+        id: r.rol.id,
+        nombre: r.rol.nombre,
+        descripcion: r.rol.descripcion ?? undefined,
+      })),
     };
   }
 }

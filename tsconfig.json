@@ -22,7 +22,8 @@
       "@routes/*": ["src/routes/*"],
       "@middlewares/*": ["src/middlewares/*"],
       "@validators/*": ["src/validators/*"],
-      "@utils/*": ["src/utils/*"]
+      "@utils/*": ["src/utils/*"],
+      "@types/*": ["src/types/*"]
     }
   },
   "include": ["src/**/*"],

@@ -14,12 +14,14 @@ export interface IUpdateMedioPago {
     requiereReferencia?: boolean;
 }
 
+import type { Numeric } from './prisma-types';
+
 export interface IPago {
     id: number;
     ventaId: number | null;
     clienteId: number | null;
     medioPagoId: number;
-    monto: number;
+    monto: Numeric;
     referencia: string | null;
     usuarioId: number;
     fechaPago: Date;
@@ -30,7 +32,7 @@ export interface ICreatePago {
     ventaId?: number | null;
     clienteId?: number | null;
     medioPagoId: number;
-    monto: number;
+    monto: Numeric;
     referencia?: string | null;
     usuarioId: number;
     observaciones?: string | null;
@@ -40,7 +42,7 @@ export interface IUpdatePago {
     ventaId?: number | null;
     clienteId?: number | null;
     medioPagoId?: number;
-    monto?: number;
+    monto?: Numeric;
     referencia?: string | null;
     observaciones?: string | null;
 }

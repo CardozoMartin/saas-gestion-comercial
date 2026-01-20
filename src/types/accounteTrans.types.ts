@@ -17,13 +17,15 @@
 //   @@map("movimientos_cuenta_corriente")
 // }
 
+import type { TipoMovimientoCuenta, Numeric } from './prisma-types';
+
 export interface IMovimientoCuentaCorriente {
     id: number;
     cuentaCorrienteId: number;
-    tipoMovimiento: 'cuenta_corriente' | 'contado' | 'transferencia'
-    monto: number;
-    saldoAnterior: number;
-    saldoNuevo: number;
+    tipoMovimiento: TipoMovimientoCuenta;
+    monto: Numeric;
+    saldoAnterior: Numeric;
+    saldoNuevo: Numeric;
     ventaId?: number | null;
     pagoId?: number | null;
     descripcion?: string | null;
@@ -31,19 +33,20 @@ export interface IMovimientoCuentaCorriente {
 }
 export interface ICreateMovimientoCuentaCorriente {
     cuentaCorrienteId: number;
-    tipoMovimiento: 'cuenta_corriente' | 'contado' | 'transferencia'
-    monto: number;
-    saldoAnterior: number;
-    saldoNuevo: number;
+    tipoMovimiento: TipoMovimientoCuenta;
+    monto: Numeric;
+    saldoAnterior: Numeric;
+    saldoNuevo: Numeric;
     ventaId?: number | null;
     pagoId?: number | null;
     descripcion?: string | null;
+    fechaMovimiento?: Date;
 }
 export interface IUpdateMovimientoCuentaCorriente {
-    tipoMovimiento?: 'cuenta_corriente' | 'contado' | 'transferencia'
-    monto?: number;
-    saldoAnterior?: number;
-    saldoNuevo?: number;
+    tipoMovimiento?: TipoMovimientoCuenta;
+    monto?: Numeric;
+    saldoAnterior?: Numeric;
+    saldoNuevo?: Numeric;
     ventaId?: number | null;
     pagoId?: number | null;
     descripcion?: string | null;

@@ -3,28 +3,24 @@ export enum EstadoCaja {
     cerrada = 'cerrada'
 }
 
-export enum TipoMovimientoCaja {
-    venta = 'venta',
-    retiro = 'retiro',
-    ingreso = 'ingreso'
-}
+import type { TipoMovimientoCaja, Numeric } from './prisma-types';
 
 export interface ICaja {
     id: number;
     usuarioId: number;
-    montoInicial: number 
-    montoFinal?: number 
+    montoInicial: Numeric;
+    montoFinal?: Numeric;
     
     // ✅ NUEVOS CAMPOS
-    montoFinalContado?: number 
-    montoRetirado?: number 
-    fondoSiguienteCaja?: number 
+    montoFinalContado?: Numeric;
+    montoRetirado?: Numeric;
+    fondoSiguienteCaja?: Numeric;
     cajaAnteriorId?: number | null;
     
-    totalEfectivo?: number 
-    totalTransferencias?: number
-    totalVentas?: number 
-    diferencia?: number 
+    totalEfectivo?: Numeric;
+    totalTransferencias?: Numeric;
+    totalVentas?: Numeric;
+    diferencia?: Numeric;
     estado: string;
     observaciones?: string | null;
     fechaApertura: Date;
@@ -33,23 +29,24 @@ export interface ICaja {
 
 export interface ICreateCaja {
     usuarioId: number;
-    montoInicial?: number; // Ahora opcional
+    montoInicial?: Numeric; // Ahora opcional
     estado?: string;
     observaciones?: string | null;
     cajaAnteriorId?: number | null; // ✅ NUEVO
 }
 
 export interface IUpdateCaja {
-    montoFinal?: number;
-    montoFinalContado?: number; // ✅ NUEVO
-    montoRetirado?: number; // ✅ NUEVO
-    fondoSiguienteCaja?: number; // ✅ NUEVO
-    totalEfectivo?: number;
-    totalTransferencias?: number;
-    totalVentas?: number;
-    diferencia?: number;
+    montoFinal?: Numeric;
+    montoFinalContado?: Numeric; // ✅ NUEVO
+    montoRetirado?: Numeric; // ✅ NUEVO
+    fondoSiguienteCaja?: Numeric; // ✅ NUEVO
+    totalEfectivo?: Numeric;
+    totalTransferencias?: Numeric;
+    totalVentas?: Numeric;
+    diferencia?: Numeric;
     estado?: string;
     observaciones?: string | null;
+    fechaCierre?: Date | null; // Agregado para registrar fecha de cierre
 }
 
 export interface ICajaMovimiento {
@@ -58,7 +55,7 @@ export interface ICajaMovimiento {
     pagoId: number | null;
     tipoMovimiento: TipoMovimientoCaja;
     medioPagoId: number;
-    monto: number;
+    monto: Numeric;
     descripcion: string | null;
     fechaMovimiento: Date;
 }
@@ -68,13 +65,13 @@ export interface ICreateCajaMovimiento {
     pagoId?: number | null;
     tipoMovimiento: TipoMovimientoCaja;
     medioPagoId: number;
-    monto: number;
+    monto: Numeric;
     descripcion?: string | null;
 }
 
 export interface IUpdateCajaMovimiento {
-    tipoMovimiento?: string;
+    tipoMovimiento?: TipoMovimientoCaja;
     medioPagoId?: number;
-    monto?: number;
+    monto?: Numeric;
     descripcion?: string | null;
 }

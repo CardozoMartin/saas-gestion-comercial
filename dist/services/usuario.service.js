@@ -7,6 +7,7 @@ exports.usuarioService = exports.UsuarioService = void 0;
 const usuario_repository_1 = require("@repositories/usuario.repository");
 const rol_repository_1 = require("@/repositories/rol.repository");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const database_1 = require("@/config/database");
 class UsuarioService {
     constructor() { }
     async getAllUsuarios() {
@@ -31,22 +32,33 @@ class UsuarioService {
         }
     }
     async createUsuario(data) {
+        console.log('createUsuario data:', data);
         try {
             // Validar si el email ya existe
             const emailExists = await usuario_repository_1.usuarioRepository.emailExists(data.email);
             if (emailExists) {
                 throw new Error('El email ya está registrado');
             }
-            // Crear usuario
-            const usuario = await usuario_repository_1.usuarioRepository.create(data);
-            //ahora asiganamos el rol por defecto de ' usuario nuevo 
-            await rol_repository_1.rolRepository.asignarRolUsuario({
-                usuarioId: usuario.id,
-                rolId: 2,
+            // Validar que se proporcione un rolId
+            if (!data.rolId) {
+                throw new Error('El rolId es requerido');
+            }
+            // Iniciar transacción
+            return await database_1.prisma.$transaction(async (tx) => {
+                // 1. Crear usuario (esto retorna el usuario con su ID)
+                const usuario = await usuario_repository_1.usuarioRepository.create(data);
+                console.log('Usuario creado con ID:', usuario.id);
+                // 2. Asignar el rol al usuario usando el ID del usuario recién creado
+                await rol_repository_1.rolRepository.asignarRolUsuario({
+                    usuarioId: usuario.id, // Usamos el ID del usuario creado
+                    rolId: data.rolId, // Usamos el rolId que viene en el data
+                });
+                console.log('Rol asignado correctamente');
+                return usuario;
             });
-            return usuario;
         }
         catch (error) {
+            console.error('Error en createUsuario:', error);
             throw error;
         }
     }
@@ -77,8 +89,9 @@ class UsuarioService {
             throw error;
         }
     }
-    async loginUsuario(email, password) {
+    async loginUsuario(data) {
         try {
+            const { email, password } = data;
             const usuario = await usuario_repository_1.usuarioRepository.findByEmail(email);
             if (!usuario) {
                 throw new Error('Email o contraseña incorrectos');
@@ -89,7 +102,7 @@ class UsuarioService {
                 throw new Error('Email o contraseña incorrectos');
             }
             // Retornar usuario sin contraseña
-            const { password, ...usuarioSinPassword } = usuario;
+            const { password: _pwd, ...usuarioSinPassword } = usuario;
             return usuarioSinPassword;
         }
         catch (error) {

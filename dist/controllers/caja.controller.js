@@ -5,7 +5,7 @@ const caja_services_1 = require("../services/caja.services");
 class CajaController {
     async abrirCaja(req, res) {
         try {
-            const { usuarioId, observaciones } = req.body; // ✅ Quitamos montoInicial
+            const { usuarioId, observaciones } = req.body;
             const user = req.user;
             if (!usuarioId) {
                 return res.status(400).json({

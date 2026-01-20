@@ -28,7 +28,8 @@ export class UsuarioController {
     async getById(req: Request, res: Response): Promise<void> {
         try {
             const { id } = req.params;
-            const usuario = await usuarioService.getUsuarioById(id);
+            if (isNaN(Number(id))) throw new Error('ID inválido');
+            const usuario = await usuarioService.getUsuarioById(Number(id));
             res.json({
                 success: true,
                 data: usuario,
@@ -79,7 +80,7 @@ export class UsuarioController {
             // Validar datos con Zod
             const validatedData = updateUsuarioSchema.parse(req.body);
 
-            const usuario = await usuarioService.updateUsuario(id, validatedData);
+            const usuario = await usuarioService.updateUsuario(Number(id), validatedData);
             res.json({
                 success: true,
                 data: usuario,
@@ -97,7 +98,8 @@ export class UsuarioController {
     async delete(req: Request, res: Response): Promise<void> {
         try {
             const { id } = req.params;
-            await usuarioService.deleteUsuario(id);
+            if (isNaN(Number(id))) throw new Error('ID inválido');
+            await usuarioService.deleteUsuario(Number(id));
             res.json({
                 success: true,
                 message: 'Usuario eliminado exitosamente',

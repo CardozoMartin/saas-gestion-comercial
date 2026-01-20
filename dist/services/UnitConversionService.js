@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.unitConversionService = exports.UnitConversionService = void 0;
-const library_1 = require("@prisma/client/runtime/library");
+const decimal_js_1 = __importDefault(require("decimal.js"));
 class UnitConversionService {
     constructor() {
         /**
@@ -56,7 +59,7 @@ class UnitConversionService {
             throw new Error(`Unidad de medida no soportada: "${unidadAbreviatura}" (normalizada: "${unidadNormalizada}"). ` +
                 `Unidades válidas: ${Object.keys(this.CONVERSION_FACTORS).join(', ')}`);
         }
-        const resultado = new library_1.Decimal(cantidad).times(factor);
+        const resultado = new decimal_js_1.default(cantidad).times(factor);
         console.log(`🔄 Conversión a base:`, {
             cantidadOriginal: cantidad,
             unidadOriginal: unidadAbreviatura,
@@ -76,7 +79,7 @@ class UnitConversionService {
             throw new Error(`Unidad de medida no soportada: "${unidadAbreviatura}" (normalizada: "${unidadNormalizada}"). ` +
                 `Unidades válidas: ${Object.keys(this.CONVERSION_FACTORS).join(', ')}`);
         }
-        const resultado = new library_1.Decimal(cantidadBase).dividedBy(factor);
+        const resultado = new decimal_js_1.default(cantidadBase).dividedBy(factor);
         console.log(`🔄 Conversión desde base:`, {
             cantidadBase,
             unidadDestino: unidadAbreviatura,

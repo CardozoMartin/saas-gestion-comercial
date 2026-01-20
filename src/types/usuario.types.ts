@@ -5,7 +5,7 @@ export interface IUsuario {
   apellido: string;
   email: string;
   telefono?: string | null;
-  rol: string;
+  rol?: string; // opcional, puede provenir de una relación
   activo: boolean;
   fechaCreacion: Date;
   fechaActualizacion: Date;
@@ -35,9 +35,10 @@ export interface ILoginUsuario {
   password: string;
 }
 
-// Interfaz interna para usuario con contraseña
+// Interfaz interna para usuario con contraseña y roles
 export interface DtoUsuarioInterno extends IUsuario {
   password: string;
+  roles?: Array<{ id: number; nombre: string; descripcion?: string }>; // compatibilidad con la consulta que trae roles
 }
 
 // Interfaz para respuesta de login
