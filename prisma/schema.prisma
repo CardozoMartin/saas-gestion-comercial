@@ -313,27 +313,32 @@ enum TipoMovimientoCuenta {
 }
 
 model Caja {
-  id                 Int        @id @default(autoincrement())
-  usuarioId          Int        @map("usuario_id")
-  montoInicial       Decimal    @map("monto_inicial") @db.Decimal(10, 2)
-  montoFinal         Decimal?   @map("monto_final") @db.Decimal(10, 2)
-  totalEfectivo      Decimal?   @map("total_efectivo") @db.Decimal(10, 2)
-  totalTransferencias Decimal?  @map("total_transferencias") @db.Decimal(10, 2)
-  totalVentas        Decimal?   @map("total_ventas") @db.Decimal(10, 2)
-  diferencia         Decimal?   @db.Decimal(10, 2)
-  estado             EstadoCaja @default(abierta)
-  observaciones      String?    @db.Text
-  fechaApertura      DateTime   @default(now()) @map("fecha_apertura")
-  fechaCierre        DateTime?  @map("fecha_cierre")
-
-  usuario            Usuario   @relation(fields: [usuarioId], references: [id])
+  id                    Int              @id @default(autoincrement())
+  usuarioId             Int              @map("usuario_id")
+  montoInicial          Decimal          @map("monto_inicial") @db.Decimal(10, 2)
+  montoFinal            Decimal?         @map("monto_final") @db.Decimal(10, 2)
   
-  movimientos        CajaMovimiento[]
+  montoFinalContado     Decimal?         @map("monto_final_contado") @db.Decimal(10, 2)
+  montoRetirado         Decimal?         @default(0) @map("monto_retirado") @db.Decimal(10, 2)
+  fondoSiguienteCaja    Decimal?         @map("fondo_siguiente_caja") @db.Decimal(10, 2)
+  cajaAnteriorId        Int?             @map("caja_anterior_id")
+  
+  totalEfectivo         Decimal?         @map("total_efectivo") @db.Decimal(10, 2)
+  totalTransferencias   Decimal?         @map("total_transferencias") @db.Decimal(10, 2)
+  totalVentas           Decimal?         @map("total_ventas") @db.Decimal(10, 2)
+  diferencia            Decimal?         @db.Decimal(10, 2)
+  estado                String           @default("abierta") @db.VarChar(20)
+  observaciones         String?          @db.Text
+  fechaApertura         DateTime         @default(now()) @map("fecha_apertura")
+  fechaCierre           DateTime?        @map("fecha_cierre")
 
-  @@index([usuarioId, estado])
+  usuario               Usuario          @relation(fields: [usuarioId], references: [id])
+  cajaAnterior          Caja?            @relation("CajaAnterior", fields: [cajaAnteriorId], references: [id])
+  cajasPosteriores      Caja[]           @relation("CajaAnterior")
+  movimientos           CajaMovimiento[]
+  
   @@map("cajas")
 }
-
 enum EstadoCaja {
   abierta
   cerrada

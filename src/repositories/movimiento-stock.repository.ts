@@ -174,3 +174,6 @@ export class StockActualRepository {
         });
     }
 }
+
+export const movimientoStockRepository = new MovimientoStockRepository();
+export const stockActualRepository = new StockActualRepository();

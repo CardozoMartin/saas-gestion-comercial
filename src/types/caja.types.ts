@@ -12,32 +12,43 @@ export enum TipoMovimientoCaja {
 export interface ICaja {
     id: number;
     usuarioId: number;
-    montoInicial: number;
-    montoFinal: number | null;
-    totalEfectivo: number | null;
-    totalTransferencias: number | null;
-    totalVentas: number | null;
-    diferencia: number | null;
-    estado: EstadoCaja;
-    observaciones: string | null;
+    montoInicial: number 
+    montoFinal?: number 
+    
+    // ✅ NUEVOS CAMPOS
+    montoFinalContado?: number 
+    montoRetirado?: number 
+    fondoSiguienteCaja?: number 
+    cajaAnteriorId?: number | null;
+    
+    totalEfectivo?: number 
+    totalTransferencias?: number
+    totalVentas?: number 
+    diferencia?: number 
+    estado: string;
+    observaciones?: string | null;
     fechaApertura: Date;
-    fechaCierre: Date | null;
+    fechaCierre?: Date | null;
 }
 
 export interface ICreateCaja {
     usuarioId: number;
-    montoInicial: number;
-    estado?: EstadoCaja;
+    montoInicial?: number; // Ahora opcional
+    estado?: string;
     observaciones?: string | null;
+    cajaAnteriorId?: number | null; // ✅ NUEVO
 }
 
 export interface IUpdateCaja {
-    montoFinal?: number | null;
-    totalEfectivo?: number | null;
-    totalTransferencias?: number | null;
-    totalVentas?: number | null;
-    diferencia?: number | null;
-    estado?: EstadoCaja;
+    montoFinal?: number;
+    montoFinalContado?: number; // ✅ NUEVO
+    montoRetirado?: number; // ✅ NUEVO
+    fondoSiguienteCaja?: number; // ✅ NUEVO
+    totalEfectivo?: number;
+    totalTransferencias?: number;
+    totalVentas?: number;
+    diferencia?: number;
+    estado?: string;
     observaciones?: string | null;
 }
 

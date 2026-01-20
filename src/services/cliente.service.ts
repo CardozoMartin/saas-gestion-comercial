@@ -10,6 +10,7 @@ import { accountTransactionRepository } from "@/repositories/AccountTransaction"
 import { Prisma } from "@prisma/client";
 import { cajaRepository } from "@/repositories/caja.repository";
 import { de } from "zod/v4/locales";
+import { auditoriaRepository } from "@/repositories/auditoria.repository";
 interface IPagarCuentaCorriente {
   clienteId: number;
   monto: number;
@@ -279,6 +280,18 @@ export class ClienteService {
               },
             });
           }
+
+          //auditoria para las ventas pagadas
+          for (const ventaMov of ventasPendientes) {
+            await auditoriaRepository.create({
+              usuarioId: data.usuarioId,
+              accion: "Venta pagada automáticamente",
+              tablaAfectada: "Venta",
+              registroId: ventaMov.ventaId!,
+              datosAnteriores: null,
+              datosNuevos: JSON.stringify({ estado: "pagada" }),
+            });
+          }
         }
 
         return {
@@ -397,6 +410,16 @@ export class ClienteService {
           },
         });
 
+        //registramos el cambio en la auditoria
+        await auditoriaRepository.create({
+          usuarioId: data.usuarioId,
+          accion: "Pago de ventas específicas",
+          tablaAfectada: "Pago",
+          registroId: pagosCreados[0].id,
+          datosAnteriores: null,
+          datosNuevos: JSON.stringify(pagosCreados),
+        });
+
         return {
           pagosCreados,
           saldoAnterior,
@@ -410,6 +433,30 @@ export class ClienteService {
       console.error("Error:", error);
       throw error;
     }
+  }
+
+  //servicio para cambiar el estado de un cliente
+  async changeStatus(id: number, activo: boolean, user?: any): Promise<ICliente> {
+    const idCliente = Number(id);
+    const cliente = await clienteRepository.findById(idCliente);
+    if (!cliente) {
+      throw new Error("Cliente no encontrado");
+    }
+    const clienteActivo = !cliente.activo;
+    const updatedCliente = await clienteRepository.update(idCliente, {
+      activo: clienteActivo,
+    });
+
+    //auditoria
+    await auditoriaRepository.create({
+      usuarioId: user?.id || 1,
+      accion: clienteActivo ? "Activar cliente" : "Desactivar cliente",
+      tablaAfectada: "Cliente",
+      registroId: idCliente,
+      datosAnteriores: JSON.stringify(cliente),
+      datosNuevos: JSON.stringify({ ...cliente, activo: clienteActivo }),
+    });
+   return updatedCliente;
   }
 }
 

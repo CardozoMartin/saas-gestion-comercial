@@ -3,6 +3,7 @@ import { stockRepository } from "@/repositories/stock.repository";
 import { auditoriaRepository } from "@/repositories/auditoria.repository";
 import { prisma } from '@config/database';
 import { IProducto, ICreateProducto, IUpdateProducto, IProductoPaginatedResult, IProductoPagination } from '@/types/producto.types';
+import { movimientoStockRepository } from "@/repositories/movimiento-stock.repository";
 
 interface ProductoDTO {
     id: number;
@@ -104,7 +105,6 @@ export class ProductoService {
         });
     }
 
-
     async updateProducto(id: string, data: IUpdateProducto, user: any): Promise<IProducto> {
         const idNumber = this.parseId(id);
 
@@ -191,7 +191,45 @@ export class ProductoService {
     return productos;
 }
 
+//servico para actualizar unicamente el stock de un producto
+async updateProductoStock(id: string, cantidad: number, user: any): Promise<IProducto> {
+    const idNumber = this.parseId(id);
 
+    // Obtener datos previos
+    const productoActual = await productoRepository.findById(idNumber);
+    console.log("En servicio - productoActual:", productoActual); // 👈 Agrega esto
+    if (!productoActual) {
+        throw new Error('Producto no encontrado');
+    }
+    
+    // Actualizar stock
+    return await prisma.$transaction(async (tx) => {
+
+        // Actualizar stock
+        await productoRepository.updateStock(idNumber, cantidad);
+
+        // Registrar movimiento
+        await movimientoStockRepository.create({
+            productoId: idNumber,
+            tipoMovimiento: 'ajuste',
+            cantidad,
+            motivo: 'Ajuste de stock manual',
+            usuarioId: user?.id || 1,
+            referenciaId: null,
+            referenciaTipo: 'ajuste_stock'
+        });
+
+        //auditoria
+        await auditoriaRepository.create({
+            usuarioId: user?.id || 1,
+            accion: 'ACTUALIZAR_STOCK_PRODUCTO',
+            tablaAfectada: 'productos',
+            registroId: idNumber,
+            datosAnteriores: JSON.stringify(productoActual),
+            datosNuevos: JSON.stringify({ ...productoActual, stockActual: cantidad })
+        });
+    })
+}
 
 
     private async validarCreacionProducto(data: ICreateProducto): Promise<void> {

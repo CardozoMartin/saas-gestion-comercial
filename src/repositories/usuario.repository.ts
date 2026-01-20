@@ -1,12 +1,10 @@
-import { prisma } from '@config/database';
-import { ICreateUsuario, IUpdateUsuario, IUsuario } from '@types/usuario.types';
-import { Usuario } from '@prisma/client';
-import bcrypt from 'bcryptjs';
-import { DtoUsuarioInterno } from '@/types/usuario.types';
-
+import { prisma } from "@config/database";
+import { ICreateUsuario, IUpdateUsuario, IUsuario } from "@types/usuario.types";
+import { Usuario } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import { DtoUsuarioInterno } from "@/types/usuario.types";
 
 export class UsuarioRepository {
- 
   async findAll(): Promise<IUsuario[]> {
     const usuarios = await prisma.usuario.findMany({
       select: {
@@ -47,7 +45,7 @@ export class UsuarioRepository {
     return usuario;
   }
 
-  async create(data: ICreateUsuario): Promise<IUsuario> {
+  async create(data: ICreateUsuario): Promise<IUsuario & { id: number }> {
     // Hash de contraseña
     const passwordHash = await bcrypt.hash(data.password, 10);
 
@@ -60,7 +58,7 @@ export class UsuarioRepository {
         telefono: data.telefono,
       },
       select: {
-        id: true,
+        id: true,  // IMPORTANTE: asegurarse de retornar el ID
         nombre: true,
         apellido: true,
         email: true,
@@ -71,9 +69,9 @@ export class UsuarioRepository {
       },
     });
 
-    
     return usuario;
   }
+
 
   async update(id: string, data: IUpdateUsuario): Promise<IUsuario> {
     const usuario = await prisma.usuario.update({
@@ -112,7 +110,9 @@ export class UsuarioRepository {
     return !!usuario;
   }
   //vamos a crear un metodo para buscar por email y traer la contraseña hasheada
-  async findByEmailWithPassword(email: string): Promise<DtoUsuarioInterno | null> {
+  async findByEmailWithPassword(
+    email: string,
+  ): Promise<DtoUsuarioInterno | null> {
     const usuario = await prisma.usuario.findUnique({
       where: { email },
       select: {
@@ -138,7 +138,14 @@ export class UsuarioRepository {
         fechaActualizacion: true,
       },
     });
-    return usuario;
+
+    if (!usuario) return null;
+
+    // Transformar la estructura para obtener solo los roles
+    return {
+      ...usuario,
+      roles: usuario.roles.map((r) => r.rol),
+    };
   }
 }
 
