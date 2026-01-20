@@ -1,5 +1,5 @@
 import { usuarioRepository } from '@repositories/usuario.repository';
-import { ICreateUsuario, ILoginUsuario, IUpdateUsuario, IUsuario } from '@types/usuario.types';
+import { ICreateUsuario, ILoginUsuario, IUpdateUsuario, IUsuario } from '@/types/usuario.types';
 import { rolRepository } from '@/repositories/rol.repository';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/config/database';
@@ -19,7 +19,7 @@ export class UsuarioService {
     }
 
 
-    async getUsuarioById(id: string): Promise<IUsuario> {
+    async getUsuarioById(id: number): Promise<IUsuario> {
         try {
             const usuario = await usuarioRepository.findById(id);
             if (!usuario) {
@@ -70,7 +70,7 @@ export class UsuarioService {
   }
 
 
-    async updateUsuario(id: string, data: IUpdateUsuario): Promise<IUsuario> {
+    async updateUsuario(id: number, data: IUpdateUsuario): Promise<IUsuario> {
         try {
             // Primero verificar que el usuario existe
             const usuarioExiste = await usuarioRepository.findById(id);
@@ -87,7 +87,7 @@ export class UsuarioService {
     }
 
 
-    async deleteUsuario(id: string): Promise<void> {
+    async deleteUsuario(id: number): Promise<void> {
         try {
             const usuarioExiste = await usuarioRepository.findById(id);
             if (!usuarioExiste) {
@@ -100,8 +100,9 @@ export class UsuarioService {
     }
 
 
-    async loginUsuario(email:string , password:string): Promise<IUsuario> {
+    async loginUsuario(data: ILoginUsuario): Promise<IUsuario> {
         try {
+            const { email, password } = data;
             const usuario = await usuarioRepository.findByEmail(email);
             if (!usuario) {
                 throw new Error('Email o contraseña incorrectos');
@@ -114,7 +115,7 @@ export class UsuarioService {
             }
 
             // Retornar usuario sin contraseña
-            const { password, ...usuarioSinPassword } = usuario;
+            const { password: _pwd, ...usuarioSinPassword } = usuario;
             return usuarioSinPassword as IUsuario;
         } catch (error) {
             throw error;

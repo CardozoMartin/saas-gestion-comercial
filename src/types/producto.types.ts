@@ -1,17 +1,23 @@
+import type { Numeric } from './prisma-types';
+
 export interface IProducto {
   id: number;
   codigo: string;
   nombre: string;
   descripcion: string | null;
   categoriaId: number | null;
-  precioCosto: number; 
-  precioVenta: number; 
+  precioCosto: Numeric;
+  precioVenta: Numeric;
   unidadMedidaId: number;
   fraccionable: boolean;
-  stockMinimo: number; 
+  stockMinimo: Numeric;
   activo: boolean;
   fechaCreacion: Date;
   fechaActualizacion: Date;
+  // Relaciones opcionales que pueden venir de las consultas con includes
+  stockActual?: { cantidad: Numeric } | null;
+  categoria?: { id: number; nombre: string } | null;
+  unidadMedida?: { id: number; nombre: string } | null;
 }
 
 export interface ICreateProducto {
@@ -38,6 +44,7 @@ export interface IUpdateProducto {
   fraccionable?: boolean;
   stockMinimo?: number;
   activo?: boolean;
+  cantidadInicial?: number;
 }
 
 // Parámetros para la paginación y filtros

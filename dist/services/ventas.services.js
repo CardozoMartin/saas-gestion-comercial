@@ -1,4 +1,7 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ventaService = exports.VentaService = void 0;
 const usuario_repository_1 = require("@/repositories/usuario.repository");
@@ -8,8 +11,7 @@ const venta_repository_1 = require("@/repositories/venta.repository");
 const stock_repository_1 = require("@/repositories/stock.repository");
 const caja_repository_1 = require("@/repositories/caja.repository");
 const database_1 = require("@config/database");
-const venta_types_1 = require("@/types/venta.types");
-const library_1 = require("@prisma/client/runtime/library");
+const decimal_js_1 = __importDefault(require("decimal.js"));
 const auditoria_repository_1 = require("@/repositories/auditoria.repository");
 const medio_pago_repository_1 = require("@/repositories/medio-pago.repository");
 const caja_services_1 = require("./caja.services");
@@ -50,7 +52,7 @@ class VentaService {
             throw new Error("Usuario no encontrado");
         }
         // Validar cliente si viene (solo para cuenta corriente es obligatorio)
-        if (data.tipoVenta === venta_types_1.TipoVenta.cuenta_corriente && !data.clienteId) {
+        if (data.tipoVenta === 'cuenta_corriente' && !data.clienteId) {
             throw new Error("Para ventas en cuenta corriente debe especificar un cliente");
         }
         if (data.clienteId) {
@@ -98,8 +100,8 @@ class VentaService {
         if (!stock) {
             throw new Error(`No hay registro de stock para el producto ${producto.nombre}`);
         }
-        const cantidadStock = new library_1.Decimal(stock.cantidad.toString());
-        const cantidadSolicitada = new library_1.Decimal(cantidadParaStock);
+        const cantidadStock = new decimal_js_1.default(stock.cantidad.toString());
+        const cantidadSolicitada = new decimal_js_1.default(cantidadParaStock);
         if (cantidadStock.lessThan(cantidadSolicitada)) {
             throw new Error(`Stock insuficiente para ${producto.nombre}. ` +
                 `Disponible: ${cantidadStock.toNumber()} ${unidadBase.abreviatura}, ` +
@@ -121,24 +123,24 @@ class VentaService {
             throw new Error("No tienes una caja abierta. Abre una caja antes de registrar ventas.");
         }
         await this.validarCreacionVenta(data);
-        let subtotal = new library_1.Decimal(0);
+        let subtotal = new decimal_js_1.default(0);
         const detallesValidados = [];
         for (const detalle of data.detalles) {
             const producto = await producto_repository_1.productoRepository.findById(detalle.productoId);
             //  Obtener la validación completa
             const validacion = await this.validarCreacionProducto(producto, detalle);
-            const subtotalDetalle = new library_1.Decimal(detalle.cantidad).times(detalle.precioUnitario);
+            const subtotalDetalle = new decimal_js_1.default(detalle.cantidad).times(detalle.precioUnitario);
             subtotal = subtotal.plus(subtotalDetalle);
             detallesValidados.push({
                 productoId: detalle.productoId,
                 unidadMedidaId: detalle.unidadMedidaId,
-                cantidad: new library_1.Decimal(detalle.cantidad), // Cantidad en unidad de venta
-                precioUnitario: new library_1.Decimal(detalle.precioUnitario),
+                cantidad: new decimal_js_1.default(detalle.cantidad), // Cantidad en unidad de venta
+                precioUnitario: new decimal_js_1.default(detalle.precioUnitario),
                 subtotal: subtotalDetalle,
                 cantidadEnUnidadBase: validacion.cantidadEnUnidadBase,
             });
         }
-        const descuento = new library_1.Decimal(data.descuento || 0);
+        const descuento = new decimal_js_1.default(data.descuento || 0);
         const total = subtotal.minus(descuento);
         if (total.lessThanOrEqualTo(0)) {
             throw new Error("El total de la venta debe ser mayor a 0");
@@ -153,9 +155,9 @@ class VentaService {
                 subtotal: subtotal.toNumber(),
                 descuento: descuento.toNumber(),
                 total: total.toNumber(),
-                estado: data.tipoVenta === venta_types_1.TipoVenta.contado
-                    ? venta_types_1.EstadoVenta.pagada
-                    : venta_types_1.EstadoVenta.pendiente,
+                estado: data.tipoVenta === 'contado'
+                    ? 'pagada'
+                    : 'pendiente',
                 observaciones: data.observaciones || null,
             });
             for (const detalle of detallesValidados) {
@@ -171,8 +173,8 @@ class VentaService {
                 //  Actualizar stock (con cantidad en unidad base)
                 const stockActual = await stock_repository_1.stockRepository.findByProductoId(detalle.productoId);
                 if (stockActual) {
-                    const stockAnterior = new library_1.Decimal(stockActual.cantidad);
-                    const cantidadADescontar = new library_1.Decimal(detalle.cantidadEnUnidadBase);
+                    const stockAnterior = new decimal_js_1.default(stockActual.cantidad);
+                    const cantidadADescontar = new decimal_js_1.default(detalle.cantidadEnUnidadBase);
                     const nuevaCantidad = stockAnterior.minus(cantidadADescontar);
                     await stock_repository_1.stockRepository.update(detalle.productoId, {
                         cantidad: nuevaCantidad.toNumber(),
@@ -180,10 +182,10 @@ class VentaService {
                 }
             }
             // Registrar pago
-            if (data.tipoVenta === venta_types_1.TipoVenta.contado ||
-                data.tipoVenta === venta_types_1.TipoVenta.transferencia) {
-                const medioPagoId = data.tipoVenta === venta_types_1.TipoVenta.contado ? 1 : 2;
-                const referencia = data.tipoVenta === venta_types_1.TipoVenta.contado
+            if (data.tipoVenta === 'contado' ||
+                data.tipoVenta === 'transferencia') {
+                const medioPagoId = data.tipoVenta === 'contado' ? 1 : 2;
+                const referencia = data.tipoVenta === 'contado'
                     ? "Pago contado"
                     : "Pago por transferencia";
                 await medio_pago_repository_1.pagoRepository.create({
@@ -197,7 +199,7 @@ class VentaService {
                 });
             }
             // ✅ MOVER AQUÍ DENTRO DE LA TRANSACCIÓN
-            if (data.tipoVenta === venta_types_1.TipoVenta.cuenta_corriente) {
+            if (data.tipoVenta === 'cuenta_corriente') {
                 // ✅ Usar tx en lugar de prisma directamente
                 const cliente = await tx.cliente.findUnique({
                     where: { id: data.clienteId },
@@ -251,12 +253,12 @@ class VentaService {
             return venta;
         });
         // Resto del código de caja...
-        if (data.tipoVenta === venta_types_1.TipoVenta.contado ||
-            data.tipoVenta === venta_types_1.TipoVenta.transferencia) {
+        if (data.tipoVenta === 'contado' ||
+            data.tipoVenta === 'transferencia') {
             try {
                 const cajaAbierta = await caja_repository_1.cajaRepository.findByUsuarioIdAndEstado(data.usuarioId, "abierta");
                 if (cajaAbierta) {
-                    const medioPagoId = data.tipoVenta === venta_types_1.TipoVenta.contado ? 1 : 2;
+                    const medioPagoId = data.tipoVenta === 'contado' ? 1 : 2;
                     const pagos = await medio_pago_repository_1.pagoRepository.findByVentaId(venta.id);
                     const pagoId = pagos.length > 0 ? pagos[0].id : null;
                     await caja_repository_1.cajaMovimientoRepository.create({

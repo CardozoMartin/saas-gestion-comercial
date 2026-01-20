@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StockActualRepository = exports.MovimientoStockRepository = void 0;
+exports.stockActualRepository = exports.movimientoStockRepository = exports.StockActualRepository = exports.MovimientoStockRepository = void 0;
 const database_1 = require("@config/database");
 class MovimientoStockRepository {
     async findAll() {
@@ -164,3 +164,5 @@ class StockActualRepository {
     }
 }
 exports.StockActualRepository = StockActualRepository;
+exports.movimientoStockRepository = new MovimientoStockRepository();
+exports.stockActualRepository = new StockActualRepository();

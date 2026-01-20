@@ -1,5 +1,5 @@
 import { prisma } from '@config/database';
-import { IRol, ICreateRol, IUpdateRol, IAsignarRolUsuario } from '@types/rol.types';
+import { IRol, ICreateRol, IUpdateRol, IAsignarRolUsuario } from '@/types/rol.types';
 import { Rol } from '@prisma/client';
 
 export class RolRepository {

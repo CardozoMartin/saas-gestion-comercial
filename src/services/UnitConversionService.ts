@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/library";
+import Decimal from 'decimal.js';
 
 export class UnitConversionService {
   
@@ -6,7 +6,7 @@ export class UnitConversionService {
    * Factores de conversión a la unidad base
    * Para convertir DE la unidad A la unidad base (multiplicar)
    */
-  private readonly CONVERSION_FACTORS = {
+  private readonly CONVERSION_FACTORS: Record<string, number> = {
     // PESO - Base: gramos (g)
     'g': 1,           
     'gr': 1,          // gramo (alternativa)

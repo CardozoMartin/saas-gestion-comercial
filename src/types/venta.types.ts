@@ -1,12 +1,17 @@
+import type { Numeric, TipoVenta as _TipoVenta, EstadoVenta as _EstadoVenta } from './prisma-types';
+
+export type TipoVenta = _TipoVenta;
+export type EstadoVenta = _EstadoVenta;
+
 export interface IVenta {
     id: number;
     numeroVenta: string;
     clienteId: number | null;
     usuarioId: number;
     tipoVenta: TipoVenta;
-    subtotal: number;
-    descuento: number;
-    total: number;
+    subtotal: Numeric;
+    descuento: Numeric;
+    total: Numeric;
     estado: EstadoVenta;
     observaciones: string | null;
     fechaVenta: Date;
@@ -16,8 +21,8 @@ export interface IVenta {
 export interface ICreateVentaDetalleInput {
     productoId: number;
     unidadMedidaId: number;
-    cantidad: number;
-    precioUnitario: number;
+    cantidad: Numeric;
+    precioUnitario: Numeric;
 }
 
 // Tipo para crear una venta desde el frontend
@@ -43,17 +48,7 @@ export interface ICreateVenta {
     observaciones?: string | null;
 }
 
-export enum TipoVenta {
-    contado = 'contado',
-    cuenta_corriente = 'cuenta_corriente',
-    transferencia = 'transferencia'
-}
-
-export enum EstadoVenta {
-    pendiente = 'pendiente',
-    pagada = 'pagada',
-    cancelada = 'cancelada'
-}
+// EstadoVenta definido por Prisma (usamos la definición generada)
 
 export interface IUpdateVenta {
     numeroVenta?: string;
@@ -71,9 +66,9 @@ export interface IVentaDetalle {
     ventaId: number;
     productoId: number;
     unidadMedidaId: number;
-    cantidad: number;
-    precioUnitario: number;
-    subtotal: number;
+    cantidad: Numeric;
+    precioUnitario: Numeric;
+    subtotal: Numeric;
 }
 
 export interface ICreateVentaDetalle {

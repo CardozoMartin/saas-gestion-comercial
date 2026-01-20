@@ -50,6 +50,7 @@ export class AccountTransactionRepository {
                 fechaMovimiento: data.fechaMovimiento
             },
             select: {
+                id: true,
                 cuentaCorrienteId: true,
                 tipoMovimiento: true,
                 monto: true,

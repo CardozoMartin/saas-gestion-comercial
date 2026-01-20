@@ -56,7 +56,7 @@ class UsuarioRepository {
                 telefono: data.telefono,
             },
             select: {
-                id: true,
+                id: true, // IMPORTANTE: asegurarse de retornar el ID
                 nombre: true,
                 apellido: true,
                 email: true,
@@ -129,7 +129,17 @@ class UsuarioRepository {
                 fechaActualizacion: true,
             },
         });
-        return usuario;
+        if (!usuario)
+            return null;
+        // Transformar la estructura para obtener solo los roles
+        return {
+            ...usuario,
+            roles: usuario.roles.map((r) => ({
+                id: r.rol.id,
+                nombre: r.rol.nombre,
+                descripcion: r.rol.descripcion ?? undefined,
+            })),
+        };
     }
 }
 exports.UsuarioRepository = UsuarioRepository;

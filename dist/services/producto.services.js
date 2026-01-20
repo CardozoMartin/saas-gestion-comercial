@@ -4,6 +4,7 @@ exports.productoService = exports.ProductoService = void 0;
 const producto_repository_1 = require("@/repositories/producto.repository");
 const auditoria_repository_1 = require("@/repositories/auditoria.repository");
 const database_1 = require("@config/database");
+const movimiento_stock_repository_1 = require("@/repositories/movimiento-stock.repository");
 class ProductoService {
     async getAllProductos(params) {
         return await producto_repository_1.productoRepository.findAll(params);
@@ -15,11 +16,10 @@ class ProductoService {
             id: producto.id,
             codigo: producto.codigo,
             nombre: producto.nombre,
-            precioVenta: producto.precioVenta,
-            stockActual: producto.stockActual ? producto.stockActual.cantidad : 0,
+            precioVenta: Number(producto.precioVenta),
+            stockActual: Number(producto.stockActual ? producto.stockActual.cantidad : 0),
             categoriaNombre: producto.categoria ? producto.categoria.nombre : undefined,
-            unidadMedidaNombre: producto.unidadMedida ? producto.unidadMedida.nombre : undefined,
-            unidadMedidaId: producto.unidadMedidaId
+            unidadMedidaNombre: producto.unidadMedida ? producto.unidadMedida.nombre : undefined
         }));
         return productoDTOs;
     }
@@ -121,7 +121,7 @@ class ProductoService {
         const productoActualizado = await producto_repository_1.productoRepository.update(idNumber, { activo });
         // Auditoría
         await auditoria_repository_1.auditoriaRepository.create({
-            usuarioId: user?.id || 1,
+            usuarioId: 1,
             accion: activo ? 'ACTIVAR_PRODUCTO' : 'DESACTIVAR_PRODUCTO',
             tablaAfectada: 'productos',
             registroId: idNumber,
@@ -134,6 +134,43 @@ class ProductoService {
     async getLowStockProducts() {
         const productos = await producto_repository_1.productoRepository.findLowStockProducts();
         return productos;
+    }
+    //servico para actualizar unicamente el stock de un producto
+    async updateProductoStock(id, cantidad, user) {
+        const idNumber = this.parseId(id);
+        // Obtener datos previos
+        const productoActual = await producto_repository_1.productoRepository.findById(idNumber);
+        console.log("En servicio - productoActual:", productoActual); // 👈 Agrega esto
+        if (!productoActual) {
+            throw new Error('Producto no encontrado');
+        }
+        // Actualizar stock
+        return await database_1.prisma.$transaction(async (tx) => {
+            // Actualizar stock
+            await producto_repository_1.productoRepository.updateStock(idNumber, cantidad);
+            // Registrar movimiento
+            await movimiento_stock_repository_1.movimientoStockRepository.create({
+                productoId: idNumber,
+                tipoMovimiento: 'ajuste',
+                cantidad,
+                motivo: 'Ajuste de stock manual',
+                usuarioId: user?.id || 1,
+                referenciaId: null,
+                referenciaTipo: 'ajuste_stock'
+            });
+            //auditoria
+            await auditoria_repository_1.auditoriaRepository.create({
+                usuarioId: user?.id || 1,
+                accion: 'ACTUALIZAR_STOCK_PRODUCTO',
+                tablaAfectada: 'productos',
+                registroId: idNumber,
+                datosAnteriores: JSON.stringify(productoActual),
+                datosNuevos: JSON.stringify({ ...productoActual, stockActual: cantidad })
+            });
+            // Devolver el producto actualizado
+            const productoActualizado = await producto_repository_1.productoRepository.findById(idNumber);
+            return productoActualizado;
+        });
     }
     async validarCreacionProducto(data) {
         // Validar código único
