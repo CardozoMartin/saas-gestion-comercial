@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { ventaService } from "../services/ventas.services";
-import { ICreateVentaInput } from "@/types/venta.types";
+import { ICreateVentaInput } from "../types/venta.types";
 
 class VentaController {
 

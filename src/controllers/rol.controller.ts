@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { RolService, rolService } from '@/services/rol.services';
+import { RolService, rolService } from '../services/rol.services';
 
 
 

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { productoService } from "../services/producto.services";
-import { IProductoPagination, ICreateProducto } from "@/types/producto.types";
-import { prisma } from "@/config/database";
+import { IProductoPagination, ICreateProducto } from "../types/producto.types";
+import { prisma } from "../config/database";
 
 export class ProductoController {
   async getAll(req: Request, res: Response): Promise<Response> {

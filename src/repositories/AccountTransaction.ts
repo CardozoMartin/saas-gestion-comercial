@@ -1,4 +1,4 @@
-import { prisma } from "@/config/database";
+import { prisma } from "../config/database";
 import { IMovimientoCuentaCorriente, ICreateMovimientoCuentaCorriente, IUpdateMovimientoCuentaCorriente } from "@/types/accounteTrans.types";
 
 export class AccountTransactionRepository {

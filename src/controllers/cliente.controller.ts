@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { clienteService } from '@/services/cliente.service';
-import { prisma } from '@/config/database';
+import { clienteService } from '../services/cliente.service';
+import { prisma } from '../config/database';
 
 export class ClienteController {
 
