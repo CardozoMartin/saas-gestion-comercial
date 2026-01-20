@@ -1,4 +1,4 @@
-import { prisma } from "@config/database";
+import { prisma } from "../config/database";
 import { Request, Response } from "express";
 
 export class RecaudadoController {

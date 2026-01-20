@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { usuarioService } from '@services/usuario.service';
+import { usuarioService } from '../services/usuario.service';
 import {
     createUsuarioSchema,
     updateUsuarioSchema,
     loginSchema,
-} from '@validators/usuario.validator';
+} from '../validators/usuario.validator';
 
 
 export class UsuarioController {

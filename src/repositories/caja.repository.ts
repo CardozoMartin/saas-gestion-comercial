@@ -1,5 +1,5 @@
 import { prisma } from '@config/database';
-import { ICaja, ICreateCaja, IUpdateCaja, ICajaMovimiento, ICreateCajaMovimiento, IUpdateCajaMovimiento } from '@/types/caja.types';
+import { ICaja, ICreateCaja, IUpdateCaja, ICajaMovimiento, ICreateCajaMovimiento, IUpdateCajaMovimiento } from '../types/caja.types';
 
 export class CajaRepository {
 

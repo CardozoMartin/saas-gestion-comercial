@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { unitsService } from "@/services/units.service";
-import { ICreateUnidadMedida, IUpdateUnidadMedida } from "@/types/unidad-medida.types";
+import { unitsService } from "../services/units.service";
+import { ICreateUnidadMedida, IUpdateUnidadMedida } from "../types/unidad-medida.types";
 
 export class UnitsController {
 
