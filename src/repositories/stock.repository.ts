@@ -1,5 +1,5 @@
-import { prisma } from "@/config/database";
-import { IStock, IStockCreate, IStockUpdate } from "@/types/stock.types";
+import { prisma } from "../config/database";
+import { IStock, IStockCreate, IStockUpdate } from "../types/stock.types";
 
 
 class StockRepository {

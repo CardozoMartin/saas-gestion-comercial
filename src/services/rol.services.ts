@@ -1,5 +1,5 @@
-import { rolRepository } from "@/repositories/rol.repository";
-import { ICreateRol, IUpdateRol, IAsignarRolUsuario, IRol } from "@/types/rol.types";
+import { rolRepository } from "../repositories/rol.repository";
+import { ICreateRol, IUpdateRol, IAsignarRolUsuario, IRol } from "../types/rol.types";
 
 
 export class RolService {

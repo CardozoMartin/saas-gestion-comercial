@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { recaudadoController } from "@/controllers/Recaudado.controller";
-import { loginDataHandler } from "@/middlewares/loginDataHandler";
+import { recaudadoController } from "../controllers/Recaudado.controller";
+import { loginDataHandler } from "../middlewares/loginDataHandler";
 
 const router = Router();
 

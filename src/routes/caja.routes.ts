@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { cajaController } from '@/controllers/caja.controller';
-import { loginDataHandler } from '@/middlewares/loginDataHandler';
+import { cajaController } from '../controllers/caja.controller';
+import { loginDataHandler } from '../middlewares/loginDataHandler';
 
 const router = Router();
 

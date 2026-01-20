@@ -1,4 +1,4 @@
-import { prisma } from "@config/database";
+import { prisma } from "../config/database";
 import {
   IVenta,
   ICreateVenta,
@@ -6,7 +6,7 @@ import {
   IVentaDetalle,
   ICreateVentaDetalle,
   IUpdateVentaDetalle,
-} from "@/types/venta.types";
+} from "../types/venta.types";
 
 export class VentaRepository {
   async findAll(): Promise<IVenta[]> {

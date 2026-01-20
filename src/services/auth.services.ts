@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import { DtoUsuarioInterno, ILoginResponse, IUsuario } from '@/types/usuario.types'
-import { usuarioRepository } from '@/repositories/usuario.repository'
-import { env } from '@/config/env'
+import { DtoUsuarioInterno, ILoginResponse, IUsuario } from '../types/usuario.types'
+import { usuarioRepository } from '../repositories/usuario.repository'
+import { env } from '../config/env'
 
 
 export class AuthService {
