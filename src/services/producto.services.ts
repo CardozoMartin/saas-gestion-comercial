@@ -13,6 +13,8 @@ interface ProductoDTO {
     stockActual: number;
     categoriaNombre?: string;
     unidadMedidaNombre?: string;
+    unidadMedidaId?: number;
+    
 }
 export class ProductoService {
 
@@ -34,6 +36,7 @@ export class ProductoService {
             stockActual: Number(producto.stockActual ? producto.stockActual.cantidad : 0),
             categoriaNombre: producto.categoria ? producto.categoria.nombre : undefined,
             unidadMedidaNombre: producto.unidadMedida ? producto.unidadMedida.nombre : undefined
+            ,unidadMedidaId: producto.unidadMedidaId
         }));
 
         return productoDTOs;
