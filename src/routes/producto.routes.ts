@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { productoController } from '@controllers/productos.controller';
-import { checkRole, loginDataHandler } from '@middlewares/loginDataHandler';
+import { productoController } from '../controllers/productos.controller';
+import { checkRole, loginDataHandler } from '../middlewares/loginDataHandler';
 const router = Router();
 
 //Rutas para obtener productos
 router.get('/', loginDataHandler, checkRole('admin', 'cajero'), productoController.getAll.bind(productoController));
-router.get('/allproducts', loginDataHandler, productoController.getProductosSinPaginacion.bind(productoController));
+router.get('/allproducts', productoController.getProductosSinPaginacion.bind(productoController));
 router.get('/lowstock', loginDataHandler, productoController.getLowStockProducts.bind(productoController));
 router.get('/:id', loginDataHandler, productoController.getById.bind(productoController));
 router.get('/product/nameorcode', loginDataHandler, checkRole('admin'), productoController.getProductosParaActualizacionStock.bind(productoController));

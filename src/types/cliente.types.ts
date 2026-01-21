@@ -1,3 +1,5 @@
+import type { Numeric } from './prisma-types';
+
 export interface ICliente {
     id: number;
     tipoDocumento: string;
@@ -8,12 +10,12 @@ export interface ICliente {
     email: string | null;
     telefono: string | null;
     direccion: string | null;
-    limiteCredito: number;
+    limiteCredito: Numeric;
     activo: boolean;
     fechaCreacion: Date;
     fechaActualizacion: Date;
-    condicionPagoId: number | null;
-    fechaProximoVencimiento: Date | null;
+    condicionPagoId?: number | null;
+    fechaProximoVencimiento?: Date | null;
 }
 
 export interface ICreateCliente {

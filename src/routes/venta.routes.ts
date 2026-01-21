@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { ventaController } from "../controllers/venta.controller";
-import { checkRole, loginDataHandler } from "@/middlewares/loginDataHandler";
+import { checkRole, loginDataHandler } from "../middlewares/loginDataHandler";
 
 const router = Router();
 

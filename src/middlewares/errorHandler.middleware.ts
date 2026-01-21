@@ -3,21 +3,22 @@ import { ZodError } from 'zod';
 import { logger } from '../config/logger';
 
 export const errorHandler = (
-  error: Error,
+  error: unknown,
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  logger.error(`Error: ${error.message}`);
+  const err = error as Error;
+  logger.error(`Error: ${err.message}`);
 
   // Error de validación Zod
   if (error instanceof ZodError) {
     return res.status(400).json({
       success: false,
       message: 'Error de validación',
-      errors: error.errors.map(err => ({
-        field: err.path.join('.'),
-        message: err.message
+      errors: error.issues.map(issue => ({
+        field: (issue.path || []).join('.'),
+        message: issue.message
       }))
     });
   }
@@ -27,7 +28,7 @@ export const errorHandler = (
   
   return res.status(statusCode).json({
     success: false,
-    message: error.message || 'Error interno del servidor',
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    message: err.message || 'Error interno del servidor',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };

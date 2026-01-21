@@ -1,9 +1,9 @@
-import { prisma } from "@config/database";
+import { prisma } from "../config/database";
 import {
   ICliente,
   ICreateCliente,
   IUpdateCliente,
-} from "@/types/cliente.types";
+} from "../types/cliente.types";
 
 export class ClienteRepository {
   async findAll(): Promise<ICliente[]> {

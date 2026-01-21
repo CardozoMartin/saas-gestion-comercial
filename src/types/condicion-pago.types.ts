@@ -14,10 +14,12 @@ export interface IUpdateCondicionPago {
     dias?: number;
 }
 
+import type { Numeric } from './prisma-types';
+
 export interface ICuentaCorriente {
     id: number;
     clienteId: number;
-    saldoActual: number;
+    saldoActual: Numeric;
     condicionPagoId: number | null;
     fechaProximoVencimiento: Date | null;
     fechaActualizacion: Date;
@@ -25,13 +27,13 @@ export interface ICuentaCorriente {
 
 export interface ICreateCuentaCorriente {
     clienteId: number;
-    saldoActual?: number;
+    saldoActual?: Numeric;
     condicionPagoId?: number | null;
     fechaProximoVencimiento?: Date | null;
 }
 
 export interface IUpdateCuentaCorriente {
-    saldoActual?: number;
+    saldoActual?: Numeric;
     condicionPagoId?: number | null;
     fechaProximoVencimiento?: Date | null;
 }

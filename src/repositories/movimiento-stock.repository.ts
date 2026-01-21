@@ -1,5 +1,5 @@
-import { prisma } from '@config/database';
-import { IMovimientoStock, ICreateMovimientoStock, IUpdateMovimientoStock, IStockActual, ICreateStockActual, IUpdateStockActual } from '@/types/movimiento-stock.types';
+import { prisma } from '../config/database';
+import { IMovimientoStock, ICreateMovimientoStock, IUpdateMovimientoStock, IStockActual, ICreateStockActual, IUpdateStockActual } from '../types/movimiento-stock.types';
 
 export class MovimientoStockRepository {
 

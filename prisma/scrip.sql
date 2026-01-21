@@ -141,7 +141,7 @@ CREATE TABLE ventas (
     observaciones TEXT,
     fecha_venta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (cliente_id) REFERENCES clientes(id),
-    FOREIGN KEY (usuario_id) REFERENCIAS usuarios(id)
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
 CREATE TABLE ventas_detalle (

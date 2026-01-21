@@ -233,6 +233,17 @@ class ClienteService {
                             },
                         });
                     }
+                    //auditoria para las ventas pagadas
+                    for (const ventaMov of ventasPendientes) {
+                        await auditoria_repository_1.auditoriaRepository.create({
+                            usuarioId: data.usuarioId,
+                            accion: "Venta pagada automáticamente",
+                            tablaAfectada: "Venta",
+                            registroId: ventaMov.ventaId,
+                            datosAnteriores: null,
+                            datosNuevos: JSON.stringify({ estado: "pagada" }),
+                        });
+                    }
                 }
                 return {
                     pago,
@@ -321,6 +332,15 @@ class ClienteService {
                         monto: montoTotal,
                         descripcion: `Pago ventas específicas`,
                     },
+                });
+                //registramos el cambio en la auditoria
+                await auditoria_repository_1.auditoriaRepository.create({
+                    usuarioId: data.usuarioId,
+                    accion: "Pago de ventas específicas",
+                    tablaAfectada: "Pago",
+                    registroId: pagosCreados[0].id,
+                    datosAnteriores: null,
+                    datosNuevos: JSON.stringify(pagosCreados),
                 });
                 return {
                     pagosCreados,

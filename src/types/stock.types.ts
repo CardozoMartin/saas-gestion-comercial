@@ -1,14 +1,16 @@
+import type { Numeric } from './prisma-types';
+
 export interface IStock {
     id?: number;
     productoId: number;
-    cantidad: number;
+    cantidad: Numeric;
 }
 
 export interface IStockUpdate {
-    cantidad?: number;
+    cantidad?: Numeric;
 }
 
 export interface IStockCreate{
     productoId: number;
-    cantidad: number;
+    cantidad: Numeric;
 }

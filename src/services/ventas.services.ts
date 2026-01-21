@@ -1,29 +1,29 @@
-import { usuarioRepository } from "@/repositories/usuario.repository";
-import { productoRepository } from "@/repositories/producto.repository";
-import { clienteRepository } from "@/repositories/cliente.repository";
+import { usuarioRepository } from "../repositories/usuario.repository";
+import { productoRepository } from "../repositories/producto.repository";
+import { clienteRepository } from "../repositories/cliente.repository";
 import {
   ventaDetalleRepository,
   ventaRepository,
-} from "@/repositories/venta.repository";
-import { stockRepository } from "@/repositories/stock.repository";
+} from "../repositories/venta.repository";
+import { stockRepository } from "../repositories/stock.repository";
 import {
   cajaRepository,
   cajaMovimientoRepository,
-} from "@/repositories/caja.repository";
-import { prisma } from "@config/database";
+} from "../repositories/caja.repository";
+import { prisma } from "../config/database";
 import {
   IVenta,
   ICreateVentaInput,
   TipoVenta,
   EstadoVenta,
-} from "@/types/venta.types";
-import { Decimal } from "@prisma/client/runtime/library";
-import { auditoriaRepository } from "@/repositories/auditoria.repository";
-import { pagoRepository } from "@/repositories/medio-pago.repository";
+} from "../types/venta.types";
+import Decimal from 'decimal.js';
+import { auditoriaRepository } from "../repositories/auditoria.repository";
+import { pagoRepository } from "../repositories/medio-pago.repository";
 import { cajaService } from "./caja.services";
 import { unitConversionService } from "./UnitConversionService";
-import { unidadMedidaRepository } from "@/repositories/unidad-medida.repository";
-import {accountTransactionRepository} from "@/repositories/AccountTransaction";
+import { unidadMedidaRepository } from "../repositories/unidad-medida.repository";
+import {accountTransactionRepository} from "../repositories/AccountTransaction";
 
 export class VentaService {
   // Generar número de venta único
@@ -65,7 +65,7 @@ export class VentaService {
     }
 
     // Validar cliente si viene (solo para cuenta corriente es obligatorio)
-    if (data.tipoVenta === TipoVenta.cuenta_corriente && !data.clienteId) {
+    if (data.tipoVenta === 'cuenta_corriente' && !data.clienteId) {
       throw new Error(
         "Para ventas en cuenta corriente debe especificar un cliente"
       );
@@ -78,7 +78,7 @@ export class VentaService {
       }
     }
   }
-  private async validarCreacionProducto(producto, detalle): Promise<any> {
+  private async validarCreacionProducto(producto: any, detalle: any): Promise<any> {
     if (!producto) {
       throw new Error(`Producto con ID ${detalle.productoId} no encontrado`);
     }
@@ -184,8 +184,7 @@ export class VentaService {
     await this.validarCreacionVenta(data);
 
     let subtotal = new Decimal(0);
-    const detallesValidados = [];
-
+    const detallesValidados: any[] = [];
     for (const detalle of data.detalles) {
       const producto = await productoRepository.findById(detalle.productoId);
 
@@ -226,9 +225,9 @@ export class VentaService {
         descuento: descuento.toNumber(),
         total: total.toNumber(),
         estado:
-          data.tipoVenta === TipoVenta.contado
-            ? EstadoVenta.pagada
-            : EstadoVenta.pendiente,
+          data.tipoVenta === 'contado'
+            ? 'pagada'
+            : 'pendiente',
         observaciones: data.observaciones || null,
       });
 
@@ -262,12 +261,12 @@ export class VentaService {
 
       // Registrar pago
       if (
-    data.tipoVenta === TipoVenta.contado ||
-    data.tipoVenta === TipoVenta.transferencia
+    data.tipoVenta === 'contado' ||
+    data.tipoVenta === 'transferencia'
   ) {
-    const medioPagoId = data.tipoVenta === TipoVenta.contado ? 1 : 2;
+    const medioPagoId = data.tipoVenta === 'contado' ? 1 : 2;
     const referencia =
-      data.tipoVenta === TipoVenta.contado
+      data.tipoVenta === 'contado'
         ? "Pago contado"
         : "Pago por transferencia";
 
@@ -283,7 +282,7 @@ export class VentaService {
   }
 
   // ✅ MOVER AQUÍ DENTRO DE LA TRANSACCIÓN
-  if (data.tipoVenta === TipoVenta.cuenta_corriente) {
+  if (data.tipoVenta === 'cuenta_corriente') {
     // ✅ Usar tx en lugar de prisma directamente
     const cliente = await tx.cliente.findUnique({
       where: { id: data.clienteId! },
@@ -347,8 +346,8 @@ export class VentaService {
 
     // Resto del código de caja...
     if (
-      data.tipoVenta === TipoVenta.contado ||
-      data.tipoVenta === TipoVenta.transferencia
+      data.tipoVenta === 'contado' ||
+      data.tipoVenta === 'transferencia'
     ) {
       try {
         const cajaAbierta = await cajaRepository.findByUsuarioIdAndEstado(
@@ -357,7 +356,7 @@ export class VentaService {
         );
 
         if (cajaAbierta) {
-          const medioPagoId = data.tipoVenta === TipoVenta.contado ? 1 : 2;
+          const medioPagoId = data.tipoVenta === 'contado' ? 1 : 2;
           const pagos = await pagoRepository.findByVentaId(venta.id);
           const pagoId = pagos.length > 0 ? pagos[0].id : null;
 

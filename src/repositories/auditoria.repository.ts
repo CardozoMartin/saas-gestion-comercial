@@ -1,5 +1,5 @@
-import { prisma } from '@config/database';
-import { IAuditoria, ICreateAuditoria, IUpdateAuditoria } from '@/types/auditoria.types';
+import { prisma } from '../config/database';
+import { IAuditoria, ICreateAuditoria, IUpdateAuditoria } from '../types/auditoria.types';
 
 export class AuditoriaRepository {
 

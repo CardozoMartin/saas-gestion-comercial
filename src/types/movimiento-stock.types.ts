@@ -1,8 +1,10 @@
+import type { Numeric, TipoMovimientoStock } from './prisma-types';
+
 export interface IMovimientoStock {
     id: number;
     productoId: number;
-    tipoMovimiento: string;
-    cantidad: number;
+    tipoMovimiento: TipoMovimientoStock;
+    cantidad: Numeric;
     motivo: string | null;
     usuarioId: number;
     referenciaId: number | null;
@@ -12,8 +14,8 @@ export interface IMovimientoStock {
 
 export interface ICreateMovimientoStock {
     productoId: number;
-    tipoMovimiento: string;
-    cantidad: number;
+    tipoMovimiento: TipoMovimientoStock;
+    cantidad: Numeric;
     motivo?: string | null;
     usuarioId: number;
     referenciaId?: number | null;
@@ -21,8 +23,8 @@ export interface ICreateMovimientoStock {
 }
 
 export interface IUpdateMovimientoStock {
-    tipoMovimiento?: string;
-    cantidad?: number;
+    tipoMovimiento?: TipoMovimientoStock;
+    cantidad?: Numeric;
     motivo?: string | null;
     referenciaId?: number | null;
     referenciaTipo?: string | null;
@@ -31,15 +33,15 @@ export interface IUpdateMovimientoStock {
 export interface IStockActual {
     id: number;
     productoId: number;
-    cantidad: number;
+    cantidad: Numeric;
     fechaActualizacion: Date;
 }
 
 export interface ICreateStockActual {
     productoId: number;
-    cantidad?: number;
+    cantidad?: Numeric;
 }
 
 export interface IUpdateStockActual {
-    cantidad?: number;
+    cantidad?: Numeric;
 }

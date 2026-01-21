@@ -1,5 +1,5 @@
-import { prisma } from '@config/database';
-import { IMedioPago, ICreateMedioPago, IUpdateMedioPago, IPago, ICreatePago, IUpdatePago } from '@/types/medio-pago.types';
+import { prisma } from '../config/database';
+import { IMedioPago, ICreateMedioPago, IUpdateMedioPago, IPago, ICreatePago, IUpdatePago } from '../types/medio-pago.types';
 
 export class MedioPagoRepository {
 

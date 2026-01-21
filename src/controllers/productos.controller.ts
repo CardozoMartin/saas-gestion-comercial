@@ -1,8 +1,7 @@
-import { Producto } from "@prisma/client";
 import { Request, Response } from "express";
 import { productoService } from "../services/producto.services";
-import { IProductoPagination } from "@/types/producto.types";
-import { prisma } from "@/config/database";
+import { IProductoPagination, ICreateProducto } from "../types/producto.types";
+import { prisma } from "../config/database";
 
 export class ProductoController {
   async getAll(req: Request, res: Response): Promise<Response> {
@@ -59,7 +58,7 @@ export class ProductoController {
 
   async create(req: Request, res: Response): Promise<Response> {
     try {
-      const data: Producto = req.body;
+      const data: ICreateProducto = req.body;
       //veremos por consola los datos del usuario logueado
       const user = req.user;
 
@@ -74,7 +73,7 @@ export class ProductoController {
   async update(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
-      const data: Partial<Producto> = req.body;
+      const data: Partial<ICreateProducto> = req.body;
       const user = req.user;
       const producto = await productoService.updateProducto(id, data, user);
       return res.status(200).json(producto);
@@ -88,7 +87,8 @@ export class ProductoController {
   async delete(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
-      const producto = await productoService.deleteProducto(id);
+      const user = req.user;
+      const producto = await productoService.deleteProducto(id, user);
       return res.status(200).json(producto);
     } catch (error) {
       return res
@@ -133,7 +133,7 @@ export class ProductoController {
       const user = req.user;
 
       const producto = await productoService.updateProductoStock(
-        Number(id),
+        id,
         Number(cantidad),
         user,
       );
@@ -165,7 +165,7 @@ export class ProductoController {
       const searchPattern = `%${search}%`;
 
       // 3️⃣ Ejecutar la query con Prisma.sql
-      const productos = await prisma.$queryRaw<Producto[]>`
+      const productos = await prisma.$queryRaw<any[]>`
       SELECT 
         p.id,
         p.codigo,

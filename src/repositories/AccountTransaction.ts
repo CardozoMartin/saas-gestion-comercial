@@ -1,4 +1,4 @@
-import { prisma } from "@/config/database";
+import { prisma } from "../config/database";
 import { IMovimientoCuentaCorriente, ICreateMovimientoCuentaCorriente, IUpdateMovimientoCuentaCorriente } from "@/types/accounteTrans.types";
 
 export class AccountTransactionRepository {
@@ -50,6 +50,7 @@ export class AccountTransactionRepository {
                 fechaMovimiento: data.fechaMovimiento
             },
             select: {
+                id: true,
                 cuentaCorrienteId: true,
                 tipoMovimiento: true,
                 monto: true,

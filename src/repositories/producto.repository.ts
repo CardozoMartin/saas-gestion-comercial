@@ -1,9 +1,11 @@
-import { prisma } from "@config/database";
+import { prisma } from "../config/database";
 import {
   IProducto,
   ICreateProducto,
   IUpdateProducto,
-} from "@/types/producto.types";
+  IProductoPagination,
+  IProductoPaginatedResult,
+} from "../types/producto.types";
 
 export class ProductoRepository {
   async findAll(
@@ -160,7 +162,7 @@ export class ProductoRepository {
 
   //obtendremos los 10 productos con mas bajo stock
   async findLowStockProducts(): Promise<any[]> {
-    const result = await prisma.$queryRaw`
+    const result = await prisma.$queryRaw<any[]>`
         SELECT 
             p.id,
             p.codigo,

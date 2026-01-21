@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { clienteService } from '@/services/cliente.service';
-import { prisma } from '@/config/database';
+import { clienteService } from '../services/cliente.service';
+import { prisma } from '../config/database';
 
 export class ClienteController {
 
@@ -238,7 +238,7 @@ export class ClienteController {
         } catch (error) {
             console.error('Error:', error);
             return res.status(500).json({
-                error: error.message || 'Error al cambiar el estado del cliente'
+                error: (error as Error).message || 'Error al cambiar el estado del cliente'
             });
         }
     }

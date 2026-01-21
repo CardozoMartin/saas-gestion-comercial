@@ -1,9 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cajaService = exports.CajaService = void 0;
 const caja_repository_1 = require("@/repositories/caja.repository");
 const database_1 = require("@config/database");
-const library_1 = require("@prisma/client/runtime/library");
+const decimal_js_1 = __importDefault(require("decimal.js"));
 class CajaService {
     async abrirCaja(data, user) {
         // Validar que el usuario no tenga una caja abierta
@@ -11,28 +14,31 @@ class CajaService {
         if (cajaAbierta) {
             throw new Error(`Ya tienes una caja abierta (ID: ${cajaAbierta.id}). Debes cerrarla antes de abrir una nueva.`);
         }
-        // ✅ NUEVO: Buscar la última caja cerrada
+        // Buscar la última caja cerrada (de cualquier usuario)
         const ultimaCajaCerrada = await database_1.prisma.caja.findFirst({
             where: {
-                usuarioId: data.usuarioId,
                 estado: 'cerrada'
             },
             orderBy: {
                 fechaCierre: 'desc'
             }
         });
-        // ✅ NUEVO: Determinar el monto inicial
-        let montoInicial = data.montoInicial;
-        if (ultimaCajaCerrada?.fondoSiguienteCaja) {
-            // Si hay fondo de la caja anterior, usarlo automáticamente
-            montoInicial = Number(ultimaCajaCerrada.fondoSiguienteCaja);
+        console.log('Última caja cerrada encontrada:', ultimaCajaCerrada);
+        // Determinar el monto inicial
+        let montoInicial;
+        if (ultimaCajaCerrada?.fondoSiguienteCaja !== null && ultimaCajaCerrada?.fondoSiguienteCaja !== undefined) {
+            const fondo = Number(ultimaCajaCerrada.fondoSiguienteCaja);
+            // ✅ Solo aceptar si el fondo es positivo (>= 0), rechazar si es negativo
+            if (fondo < 0) {
+                throw new Error(`No se puede abrir la caja. El fondo de la caja anterior es negativo: $${fondo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}. Debe resolverse antes de continuar.`);
+            }
+            montoInicial = fondo;
+            console.log(`✅ Usando fondo de caja anterior: $${montoInicial}`);
         }
-        else if (!montoInicial || montoInicial <= 0) {
-            throw new Error('Debes proporcionar un monto inicial positivo para la primera caja o cuando no hay fondo anterior.');
-        }
-        // Validar monto inicial
-        if (montoInicial < 0) {
-            throw new Error('El monto inicial no puede ser negativo');
+        else {
+            // Primera caja del sistema - iniciar en 0
+            montoInicial = 0;
+            console.log('✅ Primera caja del sistema - iniciando con $0');
         }
         // Crear la caja
         const caja = await caja_repository_1.cajaRepository.create({
@@ -40,8 +46,9 @@ class CajaService {
             montoInicial,
             estado: 'abierta',
             observaciones: data.observaciones || null,
-            cajaAnteriorId: ultimaCajaCerrada?.id || null // ✅ NUEVO
+            cajaAnteriorId: ultimaCajaCerrada?.id || null
         });
+        console.log(`✅ Caja abierta exitosamente con monto inicial: $${montoInicial}`);
         return caja;
     }
     async cerrarCaja(cajaId, montoFinalContado, montoRetirado, observaciones) {
@@ -54,11 +61,11 @@ class CajaService {
         }
         // Calcular totales desde los movimientos
         const movimientos = await caja_repository_1.cajaMovimientoRepository.findByCajaId(cajaId);
-        let totalEfectivo = new library_1.Decimal(0);
-        let totalTransferencias = new library_1.Decimal(0);
-        let totalVentas = new library_1.Decimal(0);
+        let totalEfectivo = new decimal_js_1.default(0);
+        let totalTransferencias = new decimal_js_1.default(0);
+        let totalVentas = new decimal_js_1.default(0);
         movimientos.forEach(mov => {
-            const monto = new library_1.Decimal(mov.monto);
+            const monto = new decimal_js_1.default(mov.monto);
             if (mov.tipoMovimiento === 'venta') {
                 totalVentas = totalVentas.plus(monto);
                 if (mov.medioPagoId === 1) {
@@ -93,7 +100,7 @@ class CajaService {
                 `Monto contado: $${montoFinalContado}, Retiro: $${montoRetiradoFinal}`);
         }
         // ✅ Calcular diferencia (lo que DEBERÍA haber - lo que hay FÍSICAMENTE)
-        const montoEsperado = new library_1.Decimal(caja.montoInicial).plus(totalEfectivo);
+        const montoEsperado = new decimal_js_1.default(caja.montoInicial).plus(totalEfectivo);
         const diferencia = montoEsperado.minus(montoFinalContado);
         // ✅ Actualizar la caja con fecha de cierre
         const cajaActualizada = await caja_repository_1.cajaRepository.update(cajaId, {

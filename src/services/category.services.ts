@@ -1,6 +1,6 @@
-import { categoriaRepository } from "@/repositories/categoria.repository";
-import { ICreateCategoria, IUpdateCategoria, ICategoria } from "@/types/categoria.types";
-import { prisma } from '@config/database';
+import { categoriaRepository } from "../repositories/categoria.repository";
+import { ICreateCategoria, IUpdateCategoria, ICategoria } from "../types/categoria.types";
+import { prisma } from '../config/database';
 
 export class CategoriaService {
 

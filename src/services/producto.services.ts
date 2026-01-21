@@ -1,9 +1,9 @@
-import { productoRepository } from "@/repositories/producto.repository";
+import { productoRepository } from "../repositories/producto.repository";
 import { stockRepository } from "@/repositories/stock.repository";
-import { auditoriaRepository } from "@/repositories/auditoria.repository";
-import { prisma } from '@config/database';
-import { IProducto, ICreateProducto, IUpdateProducto, IProductoPaginatedResult, IProductoPagination } from '@/types/producto.types';
-import { movimientoStockRepository } from "@/repositories/movimiento-stock.repository";
+import { auditoriaRepository } from "../repositories/auditoria.repository";
+import { prisma } from '../config/database';
+import { IProducto, ICreateProducto, IUpdateProducto, IProductoPaginatedResult, IProductoPagination } from '../types/producto.types';
+import { movimientoStockRepository } from "../repositories/movimiento-stock.repository";
 
 interface ProductoDTO {
     id: number;
@@ -13,6 +13,8 @@ interface ProductoDTO {
     stockActual: number;
     categoriaNombre?: string;
     unidadMedidaNombre?: string;
+    unidadMedidaId?: number;
+    
 }
 export class ProductoService {
 
@@ -22,7 +24,7 @@ export class ProductoService {
 
     }
 
-    async getProductosSinPaginacion(): Promise<IProducto[]> {
+    async getProductosSinPaginacion(): Promise<ProductoDTO[]> {
         const productos = await productoRepository.findAllWithoutPagination();
         
         //producto DTO
@@ -30,17 +32,17 @@ export class ProductoService {
             id: producto.id,
             codigo: producto.codigo,
             nombre: producto.nombre,
-            precioVenta: producto.precioVenta,
-            stockActual: producto.stockActual ? producto.stockActual.cantidad : 0,
+            precioVenta: Number(producto.precioVenta),
+            stockActual: Number(producto.stockActual ? producto.stockActual.cantidad : 0),
             categoriaNombre: producto.categoria ? producto.categoria.nombre : undefined,
-            unidadMedidaNombre: producto.unidadMedida ? producto.unidadMedida.nombre : undefined,
-            unidadMedidaId: producto.unidadMedidaId
+            unidadMedidaNombre: producto.unidadMedida ? producto.unidadMedida.nombre : undefined
+            ,unidadMedidaId: producto.unidadMedidaId
         }));
 
         return productoDTOs;
     }
 
-    async getProductoById(id: string): Promise<IProductoPaginatedResult> {
+    async getProductoById(id: string): Promise<IProducto> {
         const idNumber = this.parseId(id);
 
         //vamos agregar paginacion
@@ -176,7 +178,7 @@ export class ProductoService {
 
         // Auditoría
         await auditoriaRepository.create({
-            usuarioId: user?.id || 1,
+            usuarioId: 1,
             accion: activo ? 'ACTIVAR_PRODUCTO' : 'DESACTIVAR_PRODUCTO',
             tablaAfectada: 'productos',
             registroId: idNumber,
@@ -228,6 +230,10 @@ async updateProductoStock(id: string, cantidad: number, user: any): Promise<IPro
             datosAnteriores: JSON.stringify(productoActual),
             datosNuevos: JSON.stringify({ ...productoActual, stockActual: cantidad })
         });
+
+        // Devolver el producto actualizado
+        const productoActualizado = await productoRepository.findById(idNumber);
+        return productoActualizado as IProducto;
     })
 }
 
