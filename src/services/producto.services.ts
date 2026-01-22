@@ -4,6 +4,8 @@ import { auditoriaRepository } from "../repositories/auditoria.repository";
 import { prisma } from '../config/database';
 import { IProducto, ICreateProducto, IUpdateProducto, IProductoPaginatedResult, IProductoPagination } from '../types/producto.types';
 import { movimientoStockRepository } from "../repositories/movimiento-stock.repository";
+import { unidadMedidaRepository } from "../repositories/unidad-medida.repository";
+import { unitConversionService } from "../services/UnitConversionService";
 
 interface ProductoDTO {
     id: number;
@@ -61,14 +63,36 @@ export class ProductoService {
         // 1. Validaciones de negocio
         await this.validarCreacionProducto(data);
 
-        //convertimos las cantidades kg, litro y cm a gramos, mililitros y milimetros
-        //verificamos que unidad llega para el nuevo producto
-        if (data.unidadMedidaId === 2) { //kg a gramos
-            data.cantidadInicial = data.cantidadInicial ? data.cantidadInicial * 1000 : 0;
-        } else if (data.unidadMedidaId === 3) { //litro a mililitros
-            data.cantidadInicial = data.cantidadInicial ? data.cantidadInicial * 1000 : 0;
-        } else if (data.unidadMedidaId === 4) { //cm a milimetros
-            data.cantidadInicial = data.cantidadInicial ? data.cantidadInicial * 10 : 0;
+        // Normalizar cantidad inicial: si viene una unidad para la cantidad inicial, convertirla a la unidad del producto
+        if (data.cantidadInicial !== undefined && data.cantidadInicial !== null) {
+            // Si no viene unidad, asumimos que la cantidad está expresada en la unidad del producto
+            const unidadInicialId = data.cantidadInicialUnidadId ?? data.unidadMedidaId;
+
+            // Buscar unidades
+            const unidadProducto = await unidadMedidaRepository.findById(data.unidadMedidaId);
+            const unidadInicial = await unidadMedidaRepository.findById(unidadInicialId);
+
+            if (!unidadProducto) {
+                throw new Error('Unidad de medida del producto no encontrada');
+            }
+
+            if (!unidadInicial) {
+                throw new Error('Unidad de medida de la cantidad inicial no encontrada');
+            }
+
+            // Si son compatibles y distintas, convertir
+            if (unidadProducto.abreviatura.toLowerCase() !== unidadInicial.abreviatura.toLowerCase()) {
+                const sonCompat = unitConversionService.sonUnidadesCompatibles(unidadInicial.abreviatura, unidadProducto.abreviatura);
+                if (!sonCompat) {
+                    throw new Error(`La unidad de la cantidad inicial (${unidadInicial.abreviatura}) no es compatible con la unidad del producto (${unidadProducto.abreviatura})`);
+                }
+
+                const converted = unitConversionService.convertir(data.cantidadInicial, unidadInicial.abreviatura, unidadProducto.abreviatura);
+                data.cantidadInicial = converted.toNumber();
+            } else {
+                // Misma unidad, se conserva el valor
+                data.cantidadInicial = data.cantidadInicial ?? 0;
+            }
         }
 
 
@@ -129,7 +153,23 @@ export class ProductoService {
 
             // Actualizar stock si viene en la petición
             if (data.cantidadInicial !== undefined) {
-                await this.actualizarStockProducto(idNumber, data.cantidadInicial);
+                // Si el request incluye cantidadInicialUnidadId la intentamos usar, si no asumimos unidad del producto
+                const unidadInicialId = (data as any).cantidadInicialUnidadId ?? productoActual.unidadMedidaId;
+                const unidadProducto = await unidadMedidaRepository.findById(productoActual.unidadMedidaId);
+                const unidadInicial = await unidadMedidaRepository.findById(unidadInicialId);
+
+                let cantidadParaStock = data.cantidadInicial;
+
+                if (unidadProducto && unidadInicial && unidadProducto.abreviatura.toLowerCase() !== unidadInicial.abreviatura.toLowerCase()) {
+                    const sonCompat = unitConversionService.sonUnidadesCompatibles(unidadInicial.abreviatura, unidadProducto.abreviatura);
+                    if (!sonCompat) {
+                        throw new Error(`La unidad de la cantidad inicial (${unidadInicial.abreviatura}) no es compatible con la unidad del producto (${unidadProducto.abreviatura})`);
+                    }
+                    const converted = unitConversionService.convertir(data.cantidadInicial!, unidadInicial.abreviatura, unidadProducto.abreviatura);
+                    cantidadParaStock = converted.toNumber();
+                }
+
+                await this.actualizarStockProducto(idNumber, cantidadParaStock!);
             }
 
             // Auditoría

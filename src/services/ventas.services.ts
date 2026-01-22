@@ -78,7 +78,7 @@ export class VentaService {
       }
     }
   }
-  private async validarCreacionProducto(producto: any, detalle: any): Promise<any> {
+private async validarCreacionProducto(producto: any, detalle: any): Promise<any> {
     if (!producto) {
       throw new Error(`Producto con ID ${detalle.productoId} no encontrado`);
     }
@@ -87,7 +87,6 @@ export class VentaService {
       throw new Error(`Producto ${producto.nombre} no está activo`);
     }
 
-    // Obtener la unidad de medida del stock (unidad base del producto)
     const unidadBase = await unidadMedidaRepository.findById(
       producto.unidadMedidaId
     );
@@ -98,7 +97,6 @@ export class VentaService {
       );
     }
 
-    // Obtener la unidad de medida de la venta
     const unidadVenta = await unidadMedidaRepository.findById(
       detalle.unidadMedidaId
     );
@@ -107,7 +105,12 @@ export class VentaService {
       throw new Error(`Unidad de venta no encontrada`);
     }
 
-    // Validar que las unidades sean compatibles
+    // 🔍 LOG: Ver qué unidades estamos comparando
+    console.log('📊 VALIDACIÓN DE PRODUCTO:');
+    console.log('  - Producto:', producto.nombre);
+    console.log('  - Unidad base (stock):', unidadBase.abreviatura);
+    console.log('  - Unidad venta:', unidadVenta.abreviatura);
+    console.log('  - Cantidad recibida:', detalle.cantidad);
 
     const sonCompatibles = unitConversionService.sonUnidadesCompatibles(
       unidadBase.abreviatura,
@@ -128,15 +131,18 @@ export class VentaService {
     ) {
       // Misma unidad, no hay conversión necesaria
       cantidadParaStock = detalle.cantidad;
+      console.log('  ✅ Misma unidad, cantidad para stock:', cantidadParaStock);
     } else {
       // Diferentes unidades, convertir
-
       const cantidadConvertida = unitConversionService.convertir(
         detalle.cantidad,
         unidadVenta.abreviatura,
         unidadBase.abreviatura
       );
       cantidadParaStock = cantidadConvertida.toNumber();
+      console.log('  🔄 Conversión necesaria:');
+      console.log('    - De:', detalle.cantidad, unidadVenta.abreviatura);
+      console.log('    - A:', cantidadParaStock, unidadBase.abreviatura);
     }
 
     // Validar stock
@@ -151,20 +157,21 @@ export class VentaService {
     const cantidadStock = new Decimal(stock.cantidad.toString());
     const cantidadSolicitada = new Decimal(cantidadParaStock);
 
+    console.log('  📦 STOCK:');
+    console.log('    - Stock disponible:', cantidadStock.toNumber(), unidadBase.abreviatura);
+    console.log('    - Cantidad solicitada:', cantidadSolicitada.toNumber(), unidadBase.abreviatura);
+
     if (cantidadStock.lessThan(cantidadSolicitada)) {
       throw new Error(
         `Stock insuficiente para ${producto.nombre}. ` +
-          `Disponible: ${cantidadStock.toNumber()} ${
-            unidadBase.abreviatura
-          }, ` +
-          `Solicitado: ${cantidadSolicitada.toNumber()} ${
-            unidadBase.abreviatura
-          } ` +
+          `Disponible: ${cantidadStock.toNumber()} ${unidadBase.abreviatura}, ` +
+          `Solicitado: ${cantidadSolicitada.toNumber()} ${unidadBase.abreviatura} ` +
           `(${detalle.cantidad} ${unidadVenta.abreviatura})`
       );
     }
 
-    // Retornar la cantidad a descontar del stock
+    console.log('  ✅ Validación exitosa\n');
+
     return {
       producto,
       cantidadEnUnidadBase: cantidadParaStock,

@@ -30,7 +30,9 @@ export interface ICreateProducto {
   unidadMedidaId: number;
   fraccionable?: boolean;
   stockMinimo?: number;
-  cantidadInicial?: number; 
+  cantidadInicial?: number;
+  // Unidad opcional de la cantidad inicial (si no se indica, se asume la unidad del producto)
+  cantidadInicialUnidadId?: number;
 }
 
 export interface IUpdateProducto {
