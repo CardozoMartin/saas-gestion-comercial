@@ -16,7 +16,7 @@ interface ProductoDTO {
     categoriaNombre?: string;
     unidadMedidaNombre?: string;
     unidadMedidaId?: number;
-    
+
 }
 export class ProductoService {
 
@@ -28,7 +28,7 @@ export class ProductoService {
 
     async getProductosSinPaginacion(): Promise<ProductoDTO[]> {
         const productos = await productoRepository.findAllWithoutPagination();
-        
+
         //producto DTO
         const productoDTOs: ProductoDTO[] = productos.map((producto) => ({
             id: producto.id,
@@ -38,7 +38,7 @@ export class ProductoService {
             stockActual: Number(producto.stockActual ? producto.stockActual.cantidad : 0),
             categoriaNombre: producto.categoria ? producto.categoria.nombre : undefined,
             unidadMedidaNombre: producto.unidadMedida ? producto.unidadMedida.nombre : undefined
-            ,unidadMedidaId: producto.unidadMedidaId
+            , unidadMedidaId: producto.unidadMedidaId
         }));
 
         return productoDTOs;
@@ -229,53 +229,59 @@ export class ProductoService {
     }
     //servicio para obtener los 10 productos con mas bajo stock
     async getLowStockProducts(): Promise<IProducto[]> {
-    const productos = await productoRepository.findLowStockProducts();
-    return productos;
-}
-
-//servico para actualizar unicamente el stock de un producto
-async updateProductoStock(id: string, cantidad: number, user: any): Promise<IProducto> {
-    const idNumber = this.parseId(id);
-
-    // Obtener datos previos
-    const productoActual = await productoRepository.findById(idNumber);
-    console.log("En servicio - productoActual:", productoActual); // 👈 Agrega esto
-    if (!productoActual) {
-        throw new Error('Producto no encontrado');
+        const productos = await productoRepository.findLowStockProducts();
+        return productos;
     }
-    
-    // Actualizar stock
-    return await prisma.$transaction(async (tx) => {
+
+    //servicio para obtener un producto por el nombre o codigo
+    async getProductosPorNombreOCodigo(nombreOcodigo: string): Promise<IProducto[]> {
+        const productos = await productoRepository.findByNameOrCode(nombreOcodigo);
+        return productos;
+    }
+
+    //servico para actualizar unicamente el stock de un producto
+    async updateProductoStock(id: string, cantidad: number, user: any): Promise<IProducto> {
+        const idNumber = this.parseId(id);
+
+        // Obtener datos previos
+        const productoActual = await productoRepository.findById(idNumber);
+        console.log("En servicio - productoActual:", productoActual); // 👈 Agrega esto
+        if (!productoActual) {
+            throw new Error('Producto no encontrado');
+        }
 
         // Actualizar stock
-        await productoRepository.updateStock(idNumber, cantidad);
+        return await prisma.$transaction(async (tx) => {
 
-        // Registrar movimiento
-        await movimientoStockRepository.create({
-            productoId: idNumber,
-            tipoMovimiento: 'ajuste',
-            cantidad,
-            motivo: 'Ajuste de stock manual',
-            usuarioId: user?.id || 1,
-            referenciaId: null,
-            referenciaTipo: 'ajuste_stock'
-        });
+            // Actualizar stock
+            await productoRepository.updateStock(idNumber, cantidad);
 
-        //auditoria
-        await auditoriaRepository.create({
-            usuarioId: user?.id || 1,
-            accion: 'ACTUALIZAR_STOCK_PRODUCTO',
-            tablaAfectada: 'productos',
-            registroId: idNumber,
-            datosAnteriores: JSON.stringify(productoActual),
-            datosNuevos: JSON.stringify({ ...productoActual, stockActual: cantidad })
-        });
+            // Registrar movimiento
+            await movimientoStockRepository.create({
+                productoId: idNumber,
+                tipoMovimiento: 'ajuste',
+                cantidad,
+                motivo: 'Ajuste de stock manual',
+                usuarioId: user?.id || 1,
+                referenciaId: null,
+                referenciaTipo: 'ajuste_stock'
+            });
 
-        // Devolver el producto actualizado
-        const productoActualizado = await productoRepository.findById(idNumber);
-        return productoActualizado as IProducto;
-    })
-}
+            //auditoria
+            await auditoriaRepository.create({
+                usuarioId: user?.id || 1,
+                accion: 'ACTUALIZAR_STOCK_PRODUCTO',
+                tablaAfectada: 'productos',
+                registroId: idNumber,
+                datosAnteriores: JSON.stringify(productoActual),
+                datosNuevos: JSON.stringify({ ...productoActual, stockActual: cantidad })
+            });
+
+            // Devolver el producto actualizado
+            const productoActualizado = await productoRepository.findById(idNumber);
+            return productoActualizado as IProducto;
+        })
+    }
 
 
     private async validarCreacionProducto(data: ICreateProducto): Promise<void> {
