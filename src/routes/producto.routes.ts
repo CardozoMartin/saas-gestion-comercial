@@ -9,7 +9,7 @@ router.get('/allproducts', productoController.getProductosSinPaginacion.bind(pro
 router.get('/lowstock', loginDataHandler, productoController.getLowStockProducts.bind(productoController));
 router.get('/:id', loginDataHandler, productoController.getById.bind(productoController));
 router.get('/product/nameorcode', loginDataHandler, checkRole('admin'), productoController.getProductosParaActualizacionStock.bind(productoController));
-
+router.get('/buscar/:nombreOcodigo', productoController.getProductosPorNombreOCodigo.bind(productoController));
 //rutas para crear actualizar y eliminar productos
 router.post('/', loginDataHandler, productoController.create.bind(productoController));
 router.put('/:id', loginDataHandler, productoController.update.bind(productoController));

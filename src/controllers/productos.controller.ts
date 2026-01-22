@@ -196,6 +196,36 @@ export class ProductoController {
       });
     }
   }
+  //controlador para obtener productos por nombre o codigo
+  async getProductosPorNombreOCodigo(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
+    try {
+      const { nombreOcodigo } = req.params;
+      if (!nombreOcodigo || typeof nombreOcodigo !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: 'El parámetro "nombreOcodigo" es requerido',
+        });
+      }
+      const productos = await productoService.getProductosPorNombreOCodigo(
+        nombreOcodigo,
+      );
+      return res.status(200).json({
+        success: true,
+        count: productos.length,
+        data: productos,
+      });
+    } catch (error: any) {
+      console.error("Error al buscar productos:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error al buscar productos",
+        error: error.message,
+      });
+    }
+}
 }
 
 export const productoController = new ProductoController();

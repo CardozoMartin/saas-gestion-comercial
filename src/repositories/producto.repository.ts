@@ -159,6 +159,54 @@ export class ProductoRepository {
       },
     });
   }
+  //funcion para obtener un producto por nombre o codigo
+ async findByNameOrCode(nameOrCode: string): Promise<IProducto[]> {
+
+  const searchTerm = nameOrCode.toLocaleLowerCase()
+    return await prisma.producto.findMany({
+      where: {
+        OR: [
+          { nombre: { contains: searchTerm } }, // Ya es case-insensitive en MySQL
+          { codigo: { contains: searchTerm } },
+        ],
+      },
+      select: {
+          id: true,
+          codigo: true,
+          nombre: true,
+          descripcion: true,
+          categoriaId: true,
+          precioCosto: true,
+          precioVenta: true,
+          unidadMedidaId: true,
+          fraccionable: true,
+          stockMinimo: true,
+          activo: true,
+          fechaCreacion: true,
+          fechaActualizacion: true,
+          categoria: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+          unidadMedida: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+          stockActual: {
+            select: {
+              id: true,
+              cantidad: true,
+              fechaActualizacion: true,
+            },
+          },
+        }
+    });
+}
+
 
   //obtendremos los 10 productos con mas bajo stock
   async findLowStockProducts(): Promise<any[]> {
