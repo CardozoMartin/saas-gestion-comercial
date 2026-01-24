@@ -417,7 +417,7 @@ export class ProductoService {
 
     // Función para actualizar facturas (código 148760, 15 unidades)
     async actualizarFacturasDiarias(): Promise<IProducto | null> {
-        const codigo = '148760';
+        const codigo = '44567890';
 
         // 1. Buscar el producto
         const producto = await productoRepository.findByExactCodigo(codigo);
