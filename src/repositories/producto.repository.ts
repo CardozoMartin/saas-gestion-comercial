@@ -390,6 +390,46 @@ export class ProductoRepository {
       },
     });
   }
+  //metodo para buscar un producto por el codigo excato
+  async findByExactCodigo(codigo: string): Promise<IProducto | null> {
+    return await prisma.producto.findUnique({
+      where: { codigo },
+       select: {
+        id: true,
+        codigo: true,
+        nombre: true,
+        descripcion: true,
+        categoriaId: true,
+        precioCosto: true,
+        precioVenta: true,
+        unidadMedidaId: true,
+        fraccionable: true,
+        stockMinimo: true,
+        activo: true,
+        fechaCreacion: true,
+        fechaActualizacion: true,
+        categoria: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
+        unidadMedida: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
+        stockActual: {
+          select: {
+            id: true,
+            cantidad: true,
+            fechaActualizacion: true,
+          },
+        },
+      },
+    });
+  }
 }
 
 export const productoRepository = new ProductoRepository();

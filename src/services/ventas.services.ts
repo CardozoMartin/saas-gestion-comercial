@@ -23,7 +23,8 @@ import { pagoRepository } from "../repositories/medio-pago.repository";
 import { cajaService } from "./caja.services";
 import { unitConversionService } from "./UnitConversionService";
 import { unidadMedidaRepository } from "../repositories/unidad-medida.repository";
-import {accountTransactionRepository} from "../repositories/AccountTransaction";
+import { accountTransactionRepository } from "../repositories/AccountTransaction";
+import { IUpdateVentaDetallesInput } from "@/types/ventas.types";
 
 export class VentaService {
   // Generar número de venta único
@@ -78,7 +79,7 @@ export class VentaService {
       }
     }
   }
-private async validarCreacionProducto(producto: any, detalle: any): Promise<any> {
+  private async validarCreacionProducto(producto: any, detalle: any): Promise<any> {
     if (!producto) {
       throw new Error(`Producto con ID ${detalle.productoId} no encontrado`);
     }
@@ -164,9 +165,9 @@ private async validarCreacionProducto(producto: any, detalle: any): Promise<any>
     if (cantidadStock.lessThan(cantidadSolicitada)) {
       throw new Error(
         `Stock insuficiente para ${producto.nombre}. ` +
-          `Disponible: ${cantidadStock.toNumber()} ${unidadBase.abreviatura}, ` +
-          `Solicitado: ${cantidadSolicitada.toNumber()} ${unidadBase.abreviatura} ` +
-          `(${detalle.cantidad} ${unidadVenta.abreviatura})`
+        `Disponible: ${cantidadStock.toNumber()} ${unidadBase.abreviatura}, ` +
+        `Solicitado: ${cantidadSolicitada.toNumber()} ${unidadBase.abreviatura} ` +
+        `(${detalle.cantidad} ${unidadVenta.abreviatura})`
       );
     }
 
@@ -268,87 +269,87 @@ private async validarCreacionProducto(producto: any, detalle: any): Promise<any>
 
       // Registrar pago
       if (
-    data.tipoVenta === 'contado' ||
-    data.tipoVenta === 'transferencia'
-  ) {
-    const medioPagoId = data.tipoVenta === 'contado' ? 1 : 2;
-    const referencia =
-      data.tipoVenta === 'contado'
-        ? "Pago contado"
-        : "Pago por transferencia";
+        data.tipoVenta === 'contado' ||
+        data.tipoVenta === 'transferencia'
+      ) {
+        const medioPagoId = data.tipoVenta === 'contado' ? 1 : 2;
+        const referencia =
+          data.tipoVenta === 'contado'
+            ? "Pago contado"
+            : "Pago por transferencia";
 
-    await pagoRepository.create({
-      ventaId: venta.id,
-      clienteId: data.clienteId || null,
-      medioPagoId,
-      monto: total.toNumber(),
-      usuarioId: data.usuarioId,
-      referencia,
-      observaciones: null,
-    });
-  }
+        await pagoRepository.create({
+          ventaId: venta.id,
+          clienteId: data.clienteId || null,
+          medioPagoId,
+          monto: total.toNumber(),
+          usuarioId: data.usuarioId,
+          referencia,
+          observaciones: null,
+        });
+      }
 
-  // ✅ MOVER AQUÍ DENTRO DE LA TRANSACCIÓN
-  if (data.tipoVenta === 'cuenta_corriente') {
-    // ✅ Usar tx en lugar de prisma directamente
-    const cliente = await tx.cliente.findUnique({
-      where: { id: data.clienteId! },
-      select: {
-        id: true,
-        cuentaCorriente: {
+      // ✅ MOVER AQUÍ DENTRO DE LA TRANSACCIÓN
+      if (data.tipoVenta === 'cuenta_corriente') {
+        // ✅ Usar tx en lugar de prisma directamente
+        const cliente = await tx.cliente.findUnique({
+          where: { id: data.clienteId! },
           select: {
             id: true,
-            saldoActual: true,
+            cuentaCorriente: {
+              select: {
+                id: true,
+                saldoActual: true,
+              }
+            }
           }
+        });
+
+        console.log("Cliente para cuenta corriente:", cliente);
+
+        if (!cliente || !cliente.cuentaCorriente) {
+          throw new Error("Cliente no tiene cuenta corriente configurada");
         }
+
+        const saldoAnterior = Number(cliente.cuentaCorriente.saldoActual);
+        console.log("🚀 saldoAnterior:", saldoAnterior);
+
+        const saldoNuevo = saldoAnterior + total.toNumber();
+        console.log("🚀 saldoNuevo:", saldoNuevo);
+
+        // Crear el movimiento
+        await tx.movimientoCuentaCorriente.create({
+          data: {
+            cuentaCorrienteId: cliente.cuentaCorriente.id,
+            tipoMovimiento: "cargo",
+            monto: total.toNumber(),
+            saldoAnterior: saldoAnterior,
+            saldoNuevo: saldoNuevo,
+            ventaId: venta.id,
+            pagoId: null,
+            descripcion: `Venta ${venta.numeroVenta}`,
+            fechaMovimiento: new Date(),
+          }
+        });
+
+        // ✅ IMPORTANTE: Actualizar el saldo actual de la cuenta corriente
+        await tx.cuentaCorriente.update({
+          where: { id: cliente.cuentaCorriente.id },
+          data: {
+            saldoActual: saldoNuevo
+          }
+        });
       }
-    });
 
-    console.log("Cliente para cuenta corriente:", cliente);
-    
-    if (!cliente || !cliente.cuentaCorriente) {
-      throw new Error("Cliente no tiene cuenta corriente configurada");
-    }
+      await auditoriaRepository.create({
+        usuarioId: user?.id || 1,
+        accion: "CREAR_VENTA",
+        tablaAfectada: "ventas",
+        registroId: venta.id,
+        datosNuevos: JSON.stringify(venta),
+      });
 
-    const saldoAnterior = Number(cliente.cuentaCorriente.saldoActual);
-    console.log("🚀 saldoAnterior:", saldoAnterior);
-    
-    const saldoNuevo = saldoAnterior + total.toNumber();
-    console.log("🚀 saldoNuevo:", saldoNuevo);
-
-    // Crear el movimiento
-    await tx.movimientoCuentaCorriente.create({
-      data: {
-        cuentaCorrienteId: cliente.cuentaCorriente.id,
-        tipoMovimiento: "cargo",
-        monto: total.toNumber(),
-        saldoAnterior: saldoAnterior,
-        saldoNuevo: saldoNuevo,
-        ventaId: venta.id,
-        pagoId: null,
-        descripcion: `Venta ${venta.numeroVenta}`,
-        fechaMovimiento: new Date(),
-      }
-    });
-
-    // ✅ IMPORTANTE: Actualizar el saldo actual de la cuenta corriente
-    await tx.cuentaCorriente.update({
-      where: { id: cliente.cuentaCorriente.id },
-      data: {
-        saldoActual: saldoNuevo
-      }
-    });
-  }
-
-  await auditoriaRepository.create({
-    usuarioId: user?.id || 1,
-    accion: "CREAR_VENTA",
-    tablaAfectada: "ventas",
-    registroId: venta.id,
-    datosNuevos: JSON.stringify(venta),
-  });
-
-  return venta;
+      return venta;
     });
 
     // Resto del código de caja...
@@ -383,6 +384,401 @@ private async validarCreacionProducto(producto: any, detalle: any): Promise<any>
 
     return venta;
   }
+  async updateVentaDetalles(
+    ventaId: number,
+    data: IUpdateVentaDetallesInput,
+    user: any
+  ): Promise<IVenta> {
+    console.log("🔄 Actualizando venta ID:", ventaId);
+
+    // 1. Validar que la venta existe
+    const ventaExistente = await ventaRepository.findById(ventaId);
+    if (!ventaExistente) {
+      throw new Error("Venta no encontrada");
+    }
+
+    // 2. Validar que la venta no esté cancelada (anulada)
+    if (ventaExistente.estado === 'cancelada') {
+      throw new Error("No se puede editar una venta anulada");
+    }
+
+    // 3. Obtener detalles actuales
+    const detallesActuales = await ventaDetalleRepository.findByVentaId(ventaId);
+
+    return await prisma.$transaction(async (tx) => {
+      // 4. Guardar datos originales para auditoría
+      const datosOriginales = {
+        venta: ventaExistente,
+        detalles: detallesActuales
+      };
+
+      // 5. Revertir stock de detalles actuales
+      for (const detalle of detallesActuales) {
+        const producto = await productoRepository.findById(detalle.productoId);
+        const unidadBase = await unidadMedidaRepository.findById(producto!.unidadMedidaId);
+        const unidadVenta = await unidadMedidaRepository.findById(detalle.unidadMedidaId);
+
+        let cantidadParaStock: number;
+        if (unidadBase!.abreviatura.toLowerCase() === unidadVenta!.abreviatura.toLowerCase()) {
+          cantidadParaStock = detalle.cantidad;
+        } else {
+          cantidadParaStock = unitConversionService.convertir(
+            detalle.cantidad,
+            unidadVenta!.abreviatura,
+            unidadBase!.abreviatura
+          ).toNumber();
+        }
+
+        // Devolver al stock
+        const stockActual = await stockRepository.findByProductoId(detalle.productoId);
+        if (stockActual) {
+          await stockRepository.update(detalle.productoId, {
+            cantidad: new Decimal(stockActual.cantidad).plus(cantidadParaStock).toNumber()
+          });
+        }
+
+        // Eliminar detalle actual
+        await tx.ventaDetalle.delete({
+          where: { id: detalle.id }
+        });
+      }
+
+      // 6. Procesar nuevos detalles
+      let nuevoSubtotal = new Decimal(0);
+      const nuevosDetallesValidados: any[] = [];
+
+      for (const detalle of data.detalles) {
+        const producto = await productoRepository.findById(detalle.productoId);
+        const validacion = await this.validarCreacionProducto(producto, detalle);
+
+        const subtotalDetalle = new Decimal(detalle.cantidad).times(detalle.precioUnitario);
+        nuevoSubtotal = nuevoSubtotal.plus(subtotalDetalle);
+
+        nuevosDetallesValidados.push({
+          productoId: detalle.productoId,
+          unidadMedidaId: detalle.unidadMedidaId,
+          cantidad: new Decimal(detalle.cantidad),
+          precioUnitario: new Decimal(detalle.precioUnitario),
+          subtotal: subtotalDetalle,
+          cantidadEnUnidadBase: validacion.cantidadEnUnidadBase,
+        });
+      }
+
+      // 7. Calcular nuevo total
+      const nuevoDescuento = new Decimal(ventaExistente.descuento);
+      const nuevoTotal = nuevoSubtotal.minus(nuevoDescuento);
+
+      if (nuevoTotal.lessThanOrEqualTo(0)) {
+        throw new Error("El total de la venta debe ser mayor a 0");
+      }
+
+      // 8. Marcar como editada en observaciones
+      const fechaEdicion = new Date().toLocaleString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires'
+      });
+      const marcaEdicion = `[EDITADA: ${fechaEdicion} por usuario ID:${user?.id || 'desconocido'}]`;
+      const observacionesOriginales = ventaExistente.observaciones || '';
+      const nuevasObservaciones = data.observaciones
+        ? `${marcaEdicion} ${data.observaciones}\n---ORIGINAL---\n${observacionesOriginales}`
+        : `${marcaEdicion}\n---ORIGINAL---\n${observacionesOriginales}`;
+
+      // 9. Actualizar venta (mantener estado original si era pagada/pendiente)
+      const ventaActualizada = await tx.venta.update({
+        where: { id: ventaId },
+        data: {
+          subtotal: nuevoSubtotal.toNumber(),
+          total: nuevoTotal.toNumber(),
+          observaciones: nuevasObservaciones,
+          // NO cambiamos el estado, lo mantenemos
+        }
+      });
+
+      // 10. Crear nuevos detalles
+      for (const detalle of nuevosDetallesValidados) {
+        await tx.ventaDetalle.create({
+          data: {
+            ventaId: ventaId,
+            productoId: detalle.productoId,
+            unidadMedidaId: detalle.unidadMedidaId,
+            cantidad: detalle.cantidad.toNumber(),
+            precioUnitario: detalle.precioUnitario.toNumber(),
+            subtotal: detalle.subtotal.toNumber(),
+          }
+        });
+
+        // Descontar del stock
+        const stockActual = await stockRepository.findByProductoId(detalle.productoId);
+        if (stockActual) {
+          await stockRepository.update(detalle.productoId, {
+            cantidad: new Decimal(stockActual.cantidad).minus(detalle.cantidadEnUnidadBase).toNumber()
+          });
+        }
+      }
+
+      // 11. Si es cuenta corriente, ajustar movimiento
+      if (ventaExistente.tipoVenta === 'cuenta_corriente' && ventaExistente.clienteId) {
+        const cliente = await tx.cliente.findUnique({
+          where: { id: ventaExistente.clienteId },
+          select: {
+            cuentaCorriente: {
+              select: {
+                id: true,
+                saldoActual: true,
+              }
+            }
+          }
+        });
+
+        if (cliente?.cuentaCorriente) {
+          // Eliminar movimiento anterior
+          await tx.movimientoCuentaCorriente.deleteMany({
+            where: { ventaId: ventaId }
+          });
+
+          // Recalcular saldo
+          const diferencia = nuevoTotal.toNumber() - ventaExistente.total;
+          const saldoAnterior = Number(cliente.cuentaCorriente.saldoActual);
+          const saldoNuevo = saldoAnterior + diferencia;
+
+          // Crear nuevo movimiento
+          await tx.movimientoCuentaCorriente.create({
+            data: {
+              cuentaCorrienteId: cliente.cuentaCorriente.id,
+              tipoMovimiento: "cargo",
+              monto: nuevoTotal.toNumber(),
+              saldoAnterior: saldoAnterior - ventaExistente.total,
+              saldoNuevo: saldoNuevo,
+              ventaId: ventaId,
+              descripcion: `Venta ${ventaExistente.numeroVenta} (Editada el ${fechaEdicion})`,
+              fechaMovimiento: new Date(),
+            }
+          });
+
+          // Actualizar saldo de cuenta corriente
+          await tx.cuentaCorriente.update({
+            where: { id: cliente.cuentaCorriente.id },
+            data: { saldoActual: saldoNuevo }
+          });
+        }
+      }
+
+      // 12. Registrar auditoría
+      await auditoriaRepository.create({
+        usuarioId: user?.id || 1,
+        accion: "EDITAR_VENTA",
+        tablaAfectada: "ventas",
+        registroId: ventaId,
+        datosAnteriores: JSON.stringify(datosOriginales),
+        datosNuevos: JSON.stringify({
+          venta: ventaActualizada,
+          detalles: nuevosDetallesValidados
+        }),
+      });
+
+      return ventaActualizada;
+    });
+  }
+
+
+  async anularVenta(ventaId: number, motivoAnulacion: string, user: any): Promise<IVenta> {
+    console.log("❌ Anulando venta ID:", ventaId);
+
+    if (!motivoAnulacion || motivoAnulacion.trim() === '') {
+      throw new Error("Debe proporcionar un motivo de anulación");
+    }
+
+    // 1. Validar que la venta existe
+    const ventaExistente = await ventaRepository.findById(ventaId);
+    if (!ventaExistente) {
+      throw new Error("Venta no encontrada");
+    }
+
+    // 2. Validar que la venta no esté ya cancelada
+    if (ventaExistente.estado === 'cancelada') {
+      throw new Error("La venta ya está anulada");
+    }
+
+    // 3. Obtener detalles de la venta
+    const detalles = await ventaDetalleRepository.findByVentaId(ventaId);
+
+    return await prisma.$transaction(async (tx) => {
+      // 4. Revertir stock
+      console.log('📦 Revirtiendo stock de', detalles.length, 'productos...');
+
+      for (const detalle of detalles) {
+        const producto = await productoRepository.findById(detalle.productoId);
+        const unidadBase = await unidadMedidaRepository.findById(producto!.unidadMedidaId);
+        const unidadVenta = await unidadMedidaRepository.findById(detalle.unidadMedidaId);
+
+        let cantidadParaStock: number;
+        if (unidadBase!.abreviatura.toLowerCase() === unidadVenta!.abreviatura.toLowerCase()) {
+          cantidadParaStock = detalle.cantidad;
+        } else {
+          cantidadParaStock = unitConversionService.convertir(
+            detalle.cantidad,
+            unidadVenta!.abreviatura,
+            unidadBase!.abreviatura
+          ).toNumber();
+        }
+
+        // Devolver al stock
+        const stockActual = await stockRepository.findByProductoId(detalle.productoId);
+        if (stockActual) {
+          const nuevoStock = new Decimal(stockActual.cantidad).plus(cantidadParaStock).toNumber();
+          await stockRepository.update(detalle.productoId, {
+            cantidad: nuevoStock
+          });
+          console.log(`  ✅ ${producto!.nombre}: devuelto ${cantidadParaStock} ${unidadBase!.abreviatura} (nuevo stock: ${nuevoStock})`);
+        }
+      }
+
+      // 5. Si es cuenta corriente, revertir movimiento
+      if (ventaExistente.tipoVenta === 'cuenta_corriente' && ventaExistente.clienteId) {
+        const cliente = await tx.cliente.findUnique({
+          where: { id: ventaExistente.clienteId },
+          select: {
+            cuentaCorriente: {
+              select: {
+                id: true,
+                saldoActual: true,
+              }
+            }
+          }
+        });
+
+        if (cliente?.cuentaCorriente) {
+          const saldoAnterior = Number(cliente.cuentaCorriente.saldoActual);
+          const saldoNuevo = saldoAnterior - ventaExistente.total;
+
+          // Crear movimiento de anulación
+          await tx.movimientoCuentaCorriente.create({
+            data: {
+              cuentaCorrienteId: cliente.cuentaCorriente.id,
+              tipoMovimiento: "pago", // Se registra como "pago" porque reduce la deuda
+              monto: ventaExistente.total,
+              saldoAnterior: saldoAnterior,
+              saldoNuevo: saldoNuevo,
+              ventaId: ventaId,
+              descripcion: `ANULACIÓN - Venta ${ventaExistente.numeroVenta}: ${motivoAnulacion}`,
+              fechaMovimiento: new Date(),
+            }
+          });
+
+          // Actualizar saldo
+          await tx.cuentaCorriente.update({
+            where: { id: cliente.cuentaCorriente.id },
+            data: { saldoActual: saldoNuevo }
+          });
+
+          console.log(`  💳 Cuenta corriente ajustada: $${saldoAnterior} → $${saldoNuevo}`);
+        }
+      }
+
+      // 6. Marcar pagos como anulados (actualizar observaciones)
+      const pagos = await tx.pago.findMany({
+        where: { ventaId: ventaId }
+      });
+
+      for (const pago of pagos) {
+        await tx.pago.update({
+          where: { id: pago.id },
+          data: {
+            observaciones: `[ANULADO] ${motivoAnulacion}. Original: ${pago.observaciones || 'sin observaciones'}`
+          }
+        });
+      }
+
+      // 7. Marcar movimientos de caja (actualizar descripción)
+      const movimientosCaja = await tx.cajaMovimiento.findMany({
+        where: {
+          pagoId: { in: pagos.map(p => p.id) }
+        }
+      });
+
+      for (const mov of movimientosCaja) {
+        await tx.cajaMovimiento.update({
+          where: { id: mov.id },
+          data: {
+            descripcion: `[ANULADO] ${mov.descripcion}`
+          }
+        });
+      }
+
+      // 8. Actualizar estado de la venta a 'cancelada' y agregar marca
+      const fechaAnulacion = new Date().toLocaleString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires'
+      });
+      const marcaAnulacion = `[ANULADA: ${fechaAnulacion} por usuario ID:${user?.id || 'desconocido'}]\nMotivo: ${motivoAnulacion}`;
+      const observacionesOriginales = ventaExistente.observaciones || '';
+
+      const ventaAnulada = await tx.venta.update({
+        where: { id: ventaId },
+        data: {
+          estado: 'cancelada', // ✅ Usar el estado existente en la BD
+          observaciones: `${marcaAnulacion}\n---ORIGINAL---\n${observacionesOriginales}`
+        }
+      });
+
+      // 9. Registrar auditoría
+      await auditoriaRepository.create({
+        usuarioId: user?.id || 1,
+        accion: "ANULAR_VENTA",
+        tablaAfectada: "ventas",
+        registroId: ventaId,
+        datosAnteriores: JSON.stringify(ventaExistente),
+        datosNuevos: JSON.stringify({
+          ...ventaAnulada,
+          motivoAnulacion
+        }),
+      });
+
+      console.log('✅ Venta anulada exitosamente');
+      return ventaAnulada;
+    });
+  }
+
+  
+    //Obtener todas las ventas
+   
+  async getAllVentas(): Promise<IVenta[]> {
+    return await ventaRepository.findAll();
+  }
+
+
+   // Obtener venta por ID con detalles
+  
+  async getVentaById(ventaId: number): Promise<any> {
+    const venta = await ventaRepository.findById(ventaId);
+    if (!venta) return null;
+
+    const detalles = await ventaDetalleRepository.findByVentaId(ventaId);
+
+    // Determinar el estado real de la venta
+    let estadoReal = venta.estado;
+    let fueEditada = false;
+    let fueAnulada = false;
+
+    if (venta.observaciones) {
+      if (venta.observaciones.includes('[EDITADA:')) {
+        fueEditada = true;
+      }
+      if (venta.observaciones.includes('[ANULADA:')) {
+        fueAnulada = true;
+      }
+    }
+
+    return {
+      ...venta,
+      detalles,
+      meta: {
+        fueEditada,
+        fueAnulada,
+        estadoReal: fueAnulada ? 'anulada' : fueEditada ? 'editada' : estadoReal
+      }
+    };
+  }
+
+  //funcion para ob
 }
 
 export const ventaService = new VentaService();
