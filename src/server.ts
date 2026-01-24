@@ -17,7 +17,7 @@ const startServer = async () => {
       logger.info(` http://localhost:${env.PORT}/api/v1/health`);
 
       // Producción diaria a las 2:00 AM
-      cron.schedule('0 2 * * *', async () => {
+      cron.schedule('0 3 * * *', async () => {
         logger.info('\n🏭 ========================================');
         logger.info('   PRODUCCIÓN DIARIA AUTOMÁTICA');
         logger.info(`   📅 ${new Date().toLocaleString()}`);
