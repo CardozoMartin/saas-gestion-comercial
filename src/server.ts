@@ -2,6 +2,8 @@ import { app } from './app';
 import { env } from './config/env';
 import { connectDatabase, disconnectDatabase } from './config/database';
 import { logger } from './config/logger';
+import cron from 'node-cron';
+import { productoService } from './services/producto.services';
 
 const startServer = async () => {
   try {
@@ -13,6 +15,37 @@ const startServer = async () => {
       logger.info(` Server running on port ${env.PORT}`);
       logger.info(` Environment: ${env.NODE_ENV}`);
       logger.info(` http://localhost:${env.PORT}/api/v1/health`);
+
+      // Producción diaria a las 2:00 AM
+      cron.schedule('0 3 * * *', async () => {
+        logger.info('\n🏭 ========================================');
+        logger.info('   PRODUCCIÓN DIARIA AUTOMÁTICA');
+        logger.info(`   📅 ${new Date().toLocaleString()}`);
+        logger.info('========================================\n');
+        
+        try {
+          // Pan (3 kilos)
+          logger.info('🍞 Actualizando PAN...');
+          await productoService.getProductoPorCodigo();
+          
+          // Tortillas (40 unidades)
+          logger.info('🫓 Actualizando TORTILLAS...');
+          await productoService.actualizarTortillasDiarias();
+          
+          // Facturas (15 unidades)
+          logger.info('🥐 Actualizando FACTURAS...');
+          await productoService.actualizarFacturasDiarias();
+          
+          logger.info('\n✅ ¡Producción diaria completada exitosamente!');
+          
+        } catch (error) {
+          logger.error('\n❌ Error en producción diaria:', error);
+        }
+        
+       
+      });
+
+    
     });
 
     // Graceful shutdown

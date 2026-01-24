@@ -11,4 +11,32 @@ router.post(
   ventaController.createVenta,
 );
 
+router.get(
+  "/",
+  loginDataHandler,
+  checkRole("admin", "cajero"),
+  ventaController.getAllVentas,
+);
+
+router.get(
+  "/:saleId",
+  loginDataHandler,
+  checkRole("admin", "cajero"),
+  ventaController.getVentaById,
+);
+
+router.put(
+  "/:saleId/detalles",
+  loginDataHandler,
+  checkRole("admin"),
+  ventaController.updateVentaDetalles,
+);
+
+router.put(
+  "/:id/anular",
+  loginDataHandler,
+  checkRole("admin"),
+  ventaController.anularVenta,
+);
+
 export default router;

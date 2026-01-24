@@ -239,6 +239,253 @@ export class ProductoService {
         return productos;
     }
 
+    //servicio para obtener un producto por su codigo
+    async getProductoPorCodigo(): Promise<IProducto | null> {
+        const codigo = '100';
+
+        // 1. Buscar el producto
+        const producto = await productoRepository.findByExactCodigo(codigo);
+
+        if (!producto) {
+            console.log("❌ Producto no encontrado con código:", codigo);
+            return null;
+        }
+
+        console.log("✅ Producto encontrado:", producto.nombre);
+
+        // 2. Obtener unidades de medida
+        const unidadProducto = await unidadMedidaRepository.findById(producto.unidadMedidaId);
+
+        if (!unidadProducto) {
+            console.log("❌ Unidad de medida del producto no encontrada");
+            return producto;
+        }
+
+        // 3. RESETEAR A 0 PRIMERO
+        const stockActual = producto.stockActual?.cantidad || 0;
+
+        if (stockActual > 0) {
+            console.log(`🔄 Reseteando stock actual de ${stockActual}${unidadProducto.abreviatura} a 0`);
+
+            // Restar todo el stock actual para dejarlo en 0
+            await productoRepository.updateStock(producto.id, -stockActual);
+
+            // Registrar movimiento de salida (reseteo)
+            await movimientoStockRepository.create({
+                productoId: producto.id,
+                tipoMovimiento: 'salida',
+                cantidad: stockActual,
+                motivo: 'Reseteo automático - fin del día anterior',
+                usuarioId: 1,
+                referenciaId: null,
+                referenciaTipo: 'reseteo_automatico'
+            });
+        }
+
+        // 4. Cantidad a agregar: 3000 gramos (3 kilos)
+        const cantidadAAgregar = 3000; // en gramos
+        const unidadOrigen = 'g'; // gramos
+
+        // 5. Convertir a la unidad del producto si es necesario
+        let cantidadConvertida = cantidadAAgregar;
+
+        if (unidadProducto.abreviatura.toLowerCase() !== unidadOrigen.toLowerCase()) {
+            const sonCompatibles = unitConversionService.sonUnidadesCompatibles(
+                unidadOrigen,
+                unidadProducto.abreviatura
+            );
+
+            if (!sonCompatibles) {
+                console.log(`❌ No se puede convertir de ${unidadOrigen} a ${unidadProducto.abreviatura}`);
+                return producto;
+            }
+
+            const converted = unitConversionService.convertir(
+                cantidadAAgregar,
+                unidadOrigen,
+                unidadProducto.abreviatura
+            );
+
+            cantidadConvertida = converted.toNumber();
+        }
+
+        // 6. Actualizar el stock con la nueva producción
+        console.log(`📦 Agregando producción nueva: ${cantidadAAgregar}${unidadOrigen} = ${cantidadConvertida}${unidadProducto.abreviatura}`);
+
+        await productoRepository.updateStock(producto.id, cantidadConvertida);
+
+        // 7. Registrar movimiento de entrada (nueva producción)
+        await movimientoStockRepository.create({
+            productoId: producto.id,
+            tipoMovimiento: 'entrada',
+            cantidad: cantidadConvertida,
+            motivo: 'Producción diaria automática',
+            usuarioId: 1,
+            referenciaId: null,
+            referenciaTipo: 'produccion_automatica'
+        });
+
+        // 8. Auditoría
+        await auditoriaRepository.create({
+            usuarioId: 1,
+            accion: 'PRODUCCION_AUTOMATICA',
+            tablaAfectada: 'productos',
+            registroId: producto.id,
+            datosNuevos: JSON.stringify({
+                stockAnterior: stockActual,
+                stockNuevo: cantidadConvertida,
+                unidad: unidadProducto.abreviatura,
+                fecha: new Date()
+            })
+        });
+
+        console.log(`✅ Stock reseteado y actualizado: 0 → ${cantidadConvertida}${unidadProducto.abreviatura} para ${producto.nombre}`);
+
+        // 9. Devolver producto actualizado
+        const productoActualizado = await productoRepository.findByExactCodigo(codigo);
+        return productoActualizado;
+    }
+    async actualizarTortillasDiarias(): Promise<IProducto | null> {
+        const codigo = '148759';
+
+        // 1. Buscar el producto
+        const producto = await productoRepository.findByExactCodigo(codigo);
+
+        if (!producto) {
+            console.log("❌ Tortillas no encontradas con código:", codigo);
+            return null;
+        }
+
+        console.log("✅ Producto encontrado:", producto.nombre);
+
+        // 2. RESETEAR A 0 PRIMERO
+        const stockActual = producto.stockActual?.cantidad || 0;
+
+        if (stockActual > 0) {
+            console.log(`🔄 Reseteando stock actual de ${stockActual} unidades a 0`);
+
+            await productoRepository.updateStock(producto.id, -stockActual);
+
+            await movimientoStockRepository.create({
+                productoId: producto.id,
+                tipoMovimiento: 'salida',
+                cantidad: stockActual,
+                motivo: 'Reseteo automático - fin del día anterior',
+                usuarioId: 1,
+                referenciaId: null,
+                referenciaTipo: 'reseteo_automatico'
+            });
+        }
+
+        // 3. Cantidad a agregar: 40 tortillas
+        const cantidadAAgregar = 40;
+
+        console.log(`🫓 Agregando producción nueva: ${cantidadAAgregar} tortillas`);
+
+        await productoRepository.updateStock(producto.id, cantidadAAgregar);
+
+        // 4. Registrar movimiento de entrada
+        await movimientoStockRepository.create({
+            productoId: producto.id,
+            tipoMovimiento: 'entrada',
+            cantidad: cantidadAAgregar,
+            motivo: 'Producción diaria automática',
+            usuarioId: 1,
+            referenciaId: null,
+            referenciaTipo: 'produccion_automatica'
+        });
+
+        // 5. Auditoría
+        await auditoriaRepository.create({
+            usuarioId: 1,
+            accion: 'PRODUCCION_AUTOMATICA_TORTILLAS',
+            tablaAfectada: 'productos',
+            registroId: producto.id,
+            datosNuevos: JSON.stringify({
+                stockAnterior: stockActual,
+                stockNuevo: cantidadAAgregar,
+                unidad: 'unidades',
+                fecha: new Date()
+            })
+        });
+
+        console.log(`✅ Stock actualizado: 0 → ${cantidadAAgregar} tortillas`);
+
+        const productoActualizado = await productoRepository.findByExactCodigo(codigo);
+        return productoActualizado;
+    }
+
+    // Función para actualizar facturas (código 148760, 15 unidades)
+    async actualizarFacturasDiarias(): Promise<IProducto | null> {
+        const codigo = '148760';
+
+        // 1. Buscar el producto
+        const producto = await productoRepository.findByExactCodigo(codigo);
+
+        if (!producto) {
+            console.log("❌ Facturas no encontradas con código:", codigo);
+            return null;
+        }
+
+        console.log("✅ Producto encontrado:", producto.nombre);
+
+        // 2. RESETEAR A 0 PRIMERO
+        const stockActual = producto.stockActual?.cantidad || 0;
+
+        if (stockActual > 0) {
+            console.log(`🔄 Reseteando stock actual de ${stockActual} unidades a 0`);
+
+            await productoRepository.updateStock(producto.id, -stockActual);
+
+            await movimientoStockRepository.create({
+                productoId: producto.id,
+                tipoMovimiento: 'salida',
+                cantidad: stockActual,
+                motivo: 'Reseteo automático - fin del día anterior',
+                usuarioId: 1,
+                referenciaId: null,
+                referenciaTipo: 'reseteo_automatico'
+            });
+        }
+
+        // 3. Cantidad a agregar: 15 facturas
+        const cantidadAAgregar = 15;
+
+        console.log(`🥐 Agregando producción nueva: ${cantidadAAgregar} facturas`);
+
+        await productoRepository.updateStock(producto.id, cantidadAAgregar);
+
+        // 4. Registrar movimiento de entrada
+        await movimientoStockRepository.create({
+            productoId: producto.id,
+            tipoMovimiento: 'entrada',
+            cantidad: cantidadAAgregar,
+            motivo: 'Producción diaria automática',
+            usuarioId: 1,
+            referenciaId: null,
+            referenciaTipo: 'produccion_automatica'
+        });
+
+        // 5. Auditoría
+        await auditoriaRepository.create({
+            usuarioId: 1,
+            accion: 'PRODUCCION_AUTOMATICA_FACTURAS',
+            tablaAfectada: 'productos',
+            registroId: producto.id,
+            datosNuevos: JSON.stringify({
+                stockAnterior: stockActual,
+                stockNuevo: cantidadAAgregar,
+                unidad: 'unidades',
+                fecha: new Date()
+            })
+        });
+
+        console.log(`✅ Stock actualizado: 0 → ${cantidadAAgregar} facturas`);
+
+        const productoActualizado = await productoRepository.findByExactCodigo(codigo);
+        return productoActualizado;
+    }
+
     //servico para actualizar unicamente el stock de un producto
     async updateProductoStock(id: string, cantidad: number, user: any): Promise<IProducto> {
         const idNumber = this.parseId(id);
